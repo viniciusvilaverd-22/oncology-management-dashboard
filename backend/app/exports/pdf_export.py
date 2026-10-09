@@ -602,7 +602,7 @@ def build_pdf(
 
     sign = Table([
         [Paragraph("TI - Hospital Demonstrativo", ParagraphStyle("Sig1", parent=S_BODY, fontName="Helvetica-Bold"))],
-        [Paragraph("By - Vinicius Vilaverde", S_BODY)],
+        [Paragraph("Portfolio demonstrativo", S_BODY)],
     ], colWidths=[90 * mm])
     sign.setStyle(TableStyle([
         ("LINEABOVE", (0, 0), (-1, 0), 0.8, GOLD),
