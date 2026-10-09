@@ -47,6 +47,15 @@ jobs:
             exit 1
           fi
 
+      - name: Reject personal-name references
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'Vin[ií]cius|Vilaverde' . --exclude-dir=.git --exclude=ci.yml --exclude=package-lock.json; then
+            echo "Personal-name reference found in public repository content."
+            exit 1
+          fi
+
       - name: Reject vendor-specific references in public docs
         shell: bash
         run: |
