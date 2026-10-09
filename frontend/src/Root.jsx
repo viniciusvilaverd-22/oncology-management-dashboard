@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import App from "./App.jsx";
 import { authApi } from "./authApi.js";
+import { DEMO_MODE } from "./demoData.js";
 
 const BASE = import.meta.env.BASE_URL || "/";
 
@@ -87,5 +88,14 @@ export default function Root() {
 
   if (checking) return <div className="boot-screen">Carregando acesso…</div>;
   if (!session?.user) return <Login onAuthenticated={setSession} />;
-  return <App session={session} convenios={convenios} convenio={convenio} onConvenioChange={selectConvenio} onLogout={logout} />;
+  return (
+    <>
+      {DEMO_MODE && (
+        <div className="portfolio-demo-banner">
+          PORTFOLIO DEMO · synthetic data only
+        </div>
+      )}
+      <App session={session} convenios={convenios} convenio={convenio} onConvenioChange={selectConvenio} onLogout={logout} />
+    </>
+  );
 }
