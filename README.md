@@ -1,7 +1,5 @@
 # Oncology Management Dashboard
 
-[![CI](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml)
-
 > Full-stack healthcare operations platform focused on oncology production, billing traceability, financial reconciliation, denials management and account-level auditability.
 
 This repository is a **sanitized portfolio edition** of a production-oriented healthcare analytics system. It preserves the architecture, data-flow design and engineering decisions while excluding credentials, patient data, institutional identifiers, internal network information and environment-specific secrets.
@@ -58,6 +56,7 @@ See [Portfolio demo guide](docs/DEMO.md).
 ## Technical Documentation
 
 - [System guide](docs/SYSTEM_GUIDE.md) — public-safe architecture, domain semantics, security, performance, testing and deployment reference.
+- [Public/private documentation boundary](docs/PUBLIC_PRIVATE_BOUNDARY.md) — rules for portfolio content, operational runbooks, generic domain naming and publication hygiene.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
 - [Analytical data model](docs/DATA_MODEL.md)
@@ -358,11 +357,6 @@ The CI pipeline validates backend tests and the frontend production build on rep
 This project demonstrates practical software engineering applied to a complex healthcare revenue-cycle problem: integrating operational and financial data, preserving date semantics, securing access, optimizing repeated queries and presenting the result through an auditable analytical interface.
 
 The public version is intentionally decoupled from any specific healthcare institution and contains no production data.
-
-## Author
-
-**Vinícius Vilaverde**  
-Software Engineering · Healthcare Systems · Data Integration · Full-Stack Development
 
 ## License
 
