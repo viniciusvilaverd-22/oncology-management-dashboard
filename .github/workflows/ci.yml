@@ -106,6 +106,9 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Frontend demo tests
+        run: npm run test:demo
+
       - name: Production build
         run: npm run build
 
