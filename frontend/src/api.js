@@ -1,3 +1,5 @@
+import { DEMO_MODE, demoDownloadUrl, demoResponse } from "./demoData.js";
+
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 let currentConvenioId = Number(localStorage.getItem("oncology_convenio") || 11);
 
@@ -10,6 +12,8 @@ function qs(inicio, fim, extra = {}) {
 }
 
 async function getJson(path) {
+  if (DEMO_MODE) return demoResponse(path);
+
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
     headers: { "X-Convenio-Id": String(currentConvenioId || 11) },
@@ -58,14 +62,14 @@ export const api = {
   remessas: (inicio, fim, limit = 100) => getJson(`/api/onco/remessas?${qs(inicio, fim, { limit })}`),
   pacienteContas: (paciente, inicio, fim) => getJson(`/api/onco/pacientes/${paciente}/contas?${qs(inicio, fim)}`),
   contaDetalhe: (conta) => getJson(`/api/onco/contas/${conta}`),
-  contaPdfUrl: (conta) => `${API_BASE}/api/onco/contas/${conta}/pdf`,
+  contaPdfUrl: (conta) => DEMO_MODE ? demoDownloadUrl(`conta-${conta}.txt`, "Synthetic account report") : `${API_BASE}/api/onco/contas/${conta}/pdf`,
   glosasMotivos: (inicio, fim) => getJson(`/api/onco/glosas/motivos?${qs(inicio, fim)}`),
   glosas: (inicio, fim, limit = 100) => getJson(`/api/onco/glosas?${qs(inicio, fim, { limit })}`),
   produtos: (inicio, fim, limit = 100) => getJson(`/api/onco/produtos?${qs(inicio, fim, { limit })}`),
-  pdfUrl: (inicio, fim, detalhado = false) => `${API_BASE}/api/onco/export/pdf?${qs(inicio, fim, { detalhado })}`,
-  xmlUrl: (inicio, fim) => `${API_BASE}/api/onco/export/xml?${qs(inicio, fim)}`,
-  pagamentosCsvUrl: (inicio, fim) => `${API_BASE}/api/onco/export/pagamentos.csv?${qs(inicio, fim)}`,
-  faturamentoMvCsvUrl: (inicio, fim, setores = "") => `${API_BASE}/api/onco/export/faturamento-competencia.csv?${qs(inicio, fim, setores ? { setores } : {})}`,
-  atendimentosCsvUrl: (inicio, fim) => `${API_BASE}/api/onco/export/atendimentos.csv?${qs(inicio, fim)}`,
-  pacientesCsvUrl: (inicio, fim) => `${API_BASE}/api/onco/export/pacientes.csv?${qs(inicio, fim)}`,
+  pdfUrl: (inicio, fim, detalhado = false) => DEMO_MODE ? demoDownloadUrl(`oncology-report-${inicio}-${fim}.txt`, detalhado ? "Synthetic detailed report" : "Synthetic executive report") : `${API_BASE}/api/onco/export/pdf?${qs(inicio, fim, { detalhado })}`,
+  xmlUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`oncology-${inicio}-${fim}.txt`, "Synthetic XML export preview") : `${API_BASE}/api/onco/export/xml?${qs(inicio, fim)}`,
+  pagamentosCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`payments-${inicio}-${fim}.txt`, "Synthetic payments export") : `${API_BASE}/api/onco/export/pagamentos.csv?${qs(inicio, fim)}`,
+  faturamentoMvCsvUrl: (inicio, fim, setores = "") => DEMO_MODE ? demoDownloadUrl(`billing-${inicio}-${fim}.txt`, "Synthetic billing export") : `${API_BASE}/api/onco/export/faturamento-competencia.csv?${qs(inicio, fim, setores ? { setores } : {})}`,
+  atendimentosCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`attendances-${inicio}-${fim}.txt`, "Synthetic attendance export") : `${API_BASE}/api/onco/export/atendimentos.csv?${qs(inicio, fim)}`,
+  pacientesCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`patients-${inicio}-${fim}.txt`, "Synthetic patient export") : `${API_BASE}/api/onco/export/pacientes.csv?${qs(inicio, fim)}`,
 };
