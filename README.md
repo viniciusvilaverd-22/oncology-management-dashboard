@@ -362,3 +362,7 @@ The public version is intentionally decoupled from any specific healthcare insti
 
 **Vinícius Vilaverde**  
 Software Engineering · Healthcare Systems · Data Integration · Full-Stack Development
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
