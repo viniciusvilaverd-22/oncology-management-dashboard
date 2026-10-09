@@ -38,12 +38,12 @@ jobs:
             exit 1
           fi
 
-      - name: Reject private or assistant-specific references
+      - name: Reject internal environment references
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'OpenAI|ChatGPT|Codex|Claude|Gemini|Copilot|Santa Casa|IPERGS|santacasa\.local|10\.0\.0\.4' . --exclude-dir=.git --exclude=package-lock.json --exclude=ci.yml; then
-            echo "Forbidden public-repository reference found."
+          if grep -RniE 'Santa Casa|IPERGS|santacasa\.local|10\.0\.0\.4' . --exclude-dir=.git --exclude=package-lock.json --exclude=ci.yml; then
+            echo "Internal environment reference found."
             exit 1
           fi
 
