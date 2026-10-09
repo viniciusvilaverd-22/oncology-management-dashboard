@@ -17,21 +17,45 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Validate public repository hygiene
+      - name: Validate required files
         shell: bash
         run: |
           set -euo pipefail
           test -f README.md
           test -f SECURITY.md
           test -f .env.example
-          if find . -type f \( -name '.env' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' \) | grep -q .; then
+          test -f backend/requirements.txt
+          test -f frontend/package-lock.json
+
+      - name: Reject sensitive file types
+        shell: bash
+        run: |
+          set -euo pipefail
+          if find . -type f \(             -name '.env' -o             -name '*.pem' -o             -name '*.key' -o             -name '*.p12' -o             -name '*.pfx' -o             -name '*.db' -o             -name '*.sqlite' -o             -name '*.sqlite3'           \) -not -path './.git/*' | grep -q .; then
             echo "Sensitive file type found in repository."
+            exit 1
+          fi
+
+      - name: Reject private or assistant-specific references
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE             'OpenAI|ChatGPT|Codex|Claude|Gemini|Copilot|Santa Casa|IPERGS|santacasa\.local|10\.0\.0\.4'             .             --exclude-dir=.git             --exclude=package-lock.json; then
+            echo "Forbidden public-repository reference found."
+            exit 1
+          fi
+
+      - name: Reject common secret patterns
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE             'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}'             .             --exclude-dir=.git; then
+            echo "Potential secret detected."
             exit 1
           fi
 
   backend:
     name: Backend tests
-    if: ${{ hashFiles('backend/**') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -58,7 +82,6 @@ jobs:
 
   frontend:
     name: Frontend build
-    if: ${{ hashFiles('frontend/package-lock.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
