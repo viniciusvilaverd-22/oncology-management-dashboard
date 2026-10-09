@@ -61,6 +61,7 @@ See [Portfolio demo guide](docs/DEMO.md).
 - [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
 - [Analytical data model](docs/DATA_MODEL.md)
 - [Security policy](SECURITY.md)
+- [Changelog](CHANGELOG.md)
 
 ## Architecture
 
