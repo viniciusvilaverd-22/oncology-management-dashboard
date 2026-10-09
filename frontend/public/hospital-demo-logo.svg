@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="420" height="120" viewBox="0 0 420 120">
+  <rect width="420" height="120" rx="16" fill="#ffffff"/>
+  <circle cx="60" cy="60" r="38" fill="#123658"/>
+  <path d="M52 36h16v16h16v16H68v16H52V68H36V52h16z" fill="#ffffff"/>
+  <text x="115" y="54" font-family="Arial" font-size="24" font-weight="700" fill="#123658">Hospital Demo</text>
+  <text x="115" y="82" font-family="Arial" font-size="16" fill="#667788">Oncology Management</text>
+</svg>
