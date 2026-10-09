@@ -2,139 +2,97 @@
 
 ## Public Engineering Reference — Oncology Management Dashboard
 
-> Public-safe reference for architecture, domain semantics, security, performance, testing, deployment strategy and engineering decisions.
+> Public-safe reference for architecture, domain semantics, security, performance, testing and deployment strategy.
 
-This document intentionally describes the system at the architectural and domain level. Vendor-specific object names, production identifiers, internal infrastructure details, credentials, operational mappings and private troubleshooting procedures are excluded from the public repository.
-
----
+This guide describes the public application and its integration contract. Vendor-specific object names, operational SQL, production identifiers, concrete schema mappings, credentials, internal infrastructure details and troubleshooting procedures belong to the private adapter/runbook boundary.
 
 ## 1. Purpose
 
-The Oncology Management Dashboard is a full-stack analytical platform designed to connect oncology production, billing, receipt events, denials and account-level traceability.
+The Oncology Management Dashboard is a full-stack analytical platform for connecting oncology production, billing, financial receipt events, adjustments and account-level traceability.
 
 The central engineering rule is:
 
-> A financial indicator is only useful when its date reference, business meaning and underlying composition are clear.
+> A financial indicator is only useful when its date reference, business meaning and underlying composition are explicit.
 
-The application therefore treats operational production, billing competence and financial receipt as distinct dimensions instead of collapsing them into a single monthly total.
+Production, billing competence and financial receipt are therefore modeled as separate dimensions.
 
----
-
-## 2. Business problem
-
-A healthcare account can move through several independent stages:
+## 2. Business flow
 
 ```text
 production
   ↓
-billing
+account
   ↓
-remittance
+billing competence
+  ↓
+billing batch
   ↓
 invoice item
   ↓
 financial receipt
   ↓
-denial / adjustment
+adjustment / appeal
   ↓
 current balance
 ```
 
-These stages do not necessarily occur in the same month.
-
-A production event can happen in one period, be billed in another and be received later through one or more financial events.
-
-The application was designed to make this lifecycle auditable from executive KPIs down to account-level details.
-
----
+These stages can occur in different months. The system is designed to preserve that temporal separation and make the lifecycle auditable from KPI to account-level evidence.
 
 ## 3. Core time dimensions
 
-The system preserves three independent business clocks.
-
 | Dimension | Meaning |
 |---|---|
-| Production period | when the oncology activity was produced |
-| Billing competence | when the account or item entered the billing cycle |
-| Receipt date | when the financial system registered the receipt |
+| Production period | when oncology activity was produced |
+| Billing competence | when the account/item entered the billing cycle |
+| Receipt date | when the financial system registered the receipt event |
 
 The platform never assumes these dates are interchangeable.
 
-This prevents misleading conclusions such as treating a receipt posted this month as if it necessarily belonged to this month's production or billing.
-
----
-
-## 4. Domain model
-
-The public domain abstraction is:
+## 4. Public domain model
 
 ```text
 OncologySchedule
       ↓
-Attendance
-      ↓
-Patient
+PatientEncounter
       ↓
 AmbulatoryAccount
       ↓
-Remittance
+BillingBatch
       ↓
 InvoiceItem
       ↓
-ReceiptAdjustment
-      ↓
 ReceiptEvent
-      ↓
-Denial / Balance
+      ├── ReceiptAdjustment
+      └── AppealEvent
 ```
 
-These names describe business roles rather than vendor-specific database objects.
+These entities describe business roles, not vendor-specific database objects.
 
-### Main entities
+### Entity responsibilities
 
-**OncologySchedule**  
-Identifies the oncology operational cohort.
-
-**Attendance**  
-Represents the clinical/operational encounter.
-
-**Patient**  
-Provides the patient-level aggregation key.
-
-**AmbulatoryAccount**  
-Represents the financial account associated with the attendance.
-
-**Remittance**  
-Groups accounts/items into the billing workflow.
-
-**InvoiceItem**  
-Acts as the bridge between billed values and financial events.
-
-**ReceiptAdjustment**  
-Represents the allocation of received amounts, additions, discounts or denial-related values to billed items.
-
-**ReceiptEvent**  
-Represents the financial receipt event and its registered receipt date.
-
----
+- **OncologySchedule** — identifies the operational oncology cohort.
+- **PatientEncounter** — represents the clinical/operational encounter.
+- **AmbulatoryAccount** — represents the account tied to the encounter.
+- **BillingBatch** — groups accounts/items in the billing workflow.
+- **InvoiceItem** — provides item-level financial traceability.
+- **ReceiptEvent** — represents a financial receipt event and its native receipt date.
+- **ReceiptAdjustment** — represents additions, discounts, denials or other financial adjustments.
+- **AppealEvent** — represents a recovery/appeal process when applicable.
+- **PaymentReconciliation** — represents the analytical reconciliation of billed, received, adjusted and open values.
 
 ## 5. Financial semantics
 
-The system deliberately separates multiple monetary concepts.
-
 ### Billed value
 
-Amount associated with the account or billing item.
-
-It must not be described as hospital cost.
+Amount associated with an account or billing item. It must not be described as hospital cost.
 
 ### Financial receipt
 
-Gross amount associated with the financial receipt allocation.
+Amount associated with a validated financial receipt event.
 
 ### Base receipt
 
-The analytical model separates additions from the base receipt:
+When additions are represented separately:
 
 ```text
 base receipt =
@@ -148,11 +106,11 @@ estimated balance =
 max(billed - accumulated base receipts, 0)
 ```
 
-### Denial-associated balance
+### Adjustment-associated balance
 
 ```text
-denial-associated balance =
-min(estimated balance, accumulated denial value)
+adjustment-associated balance =
+min(estimated balance, accumulated adjustment value)
 ```
 
 ### Open financial balance
@@ -162,350 +120,236 @@ open financial balance =
 max(
   billed
   - accumulated base receipts
-  - accumulated denial value,
+  - accumulated applicable adjustments,
   0
 )
 ```
 
-This prevents the common mistake of treating every difference between billed and received values as a denial.
+A difference between billed and received values is not automatically a denial or loss.
 
----
+## 6. Financial states
 
-## 6. Account financial states
-
-The application derives analytical states such as:
+The analytical layer can classify accounts into states such as:
 
 | State | Meaning |
 |---|---|
 | No receipt | no accumulated base receipt |
-| Received | remaining balance is effectively zero |
-| Received with denial | remaining difference is explained by denial values |
-| Partially received | financial balance remains open |
-| Partially received with denial | both open balance and denial are present |
+| Received | remaining financial balance is effectively zero |
+| Received with adjustment | remaining difference is explained by validated adjustments |
+| Partially received | open financial balance remains |
+| Partially received with adjustment | both open balance and adjustments are present |
 
-Small monetary tolerances are used to avoid classification errors caused by rounding.
+Small monetary tolerances may be used to avoid rounding-driven classification errors.
 
----
+## 7. Receipt history
 
-## 7. Reversals and receipt history
+A logical account may participate in multiple receipt events.
 
-Financial events can be reversed.
-
-Reversed events are excluded from the normal accumulated receipt state.
-
-They may still be available for audit purposes, but they must not inflate the current received amount.
-
-The model also supports multiple receipt events for the same account or item.
-
-Multiple receipts are not automatically considered an error; they may represent legitimate partial payments.
-
----
+Multiple receipts are not automatically an error; they can represent legitimate partial or delayed settlement. Reversed/cancelled events must not inflate the current received amount.
 
 ## 8. Competence × receipt analysis
 
-One of the most important analytical views answers:
+A central analytical question is:
 
-> From which billing competences did the amounts received in a selected month originate?
-
-Conceptually:
+> Which billing competences originated the amounts received in the selected receipt period?
 
 ```text
 Billing competence A ─────┐
-                          ├──► Receipt month X
+                          ├──► Receipt period X
 Billing competence B ─────┘
 ```
 
-This view preserves both dimensions and makes delayed receipts visible.
+This view intentionally preserves both dimensions.
 
----
+## 9. Traceability
 
-## 9. Historical account tracking
-
-Production-oriented views start from a selected operational cohort.
-
-Once the cohort is identified, the system follows those accounts through later financial events.
+Important aggregates should support drill-down:
 
 ```text
-selected production cohort
-        ↓
-billing competence
-        ↓
-later receipt events
-        ↓
-denials
-        ↓
-current balance
+Received amount
+    ↓
+Receipt events
+    ↓
+Billing batches
+    ↓
+Accounts
+    ↓
+Patients / encounters
 ```
 
-This allows a user to select an earlier production period and still see receipts that occurred afterward.
+The purpose is auditability rather than only descriptive reporting.
 
----
-
-## 10. Audit rules
-
-The system includes automated analytical checks for situations such as:
-
-- account without an expected billing document;
-- account without a financial receipt;
-- operationally paid remittance without a matching receipt event;
-- received value above the billed amount;
-- partial receipt;
-- receipt with denial;
-- multiple receipt events.
-
-These rules are indicators for investigation, not automatic proof of an error.
-
----
-
-## 11. Receipt aging
-
-Receipt aging measures elapsed time between the operational event and financial receipt.
-
-The application exposes metrics such as:
-
-- average days;
-- median;
-- 90th percentile;
-- up to 30 days;
-- 31–60 days;
-- 61–90 days;
-- above 90 days.
-
-Percentiles are useful because financial receipt cycles are often asymmetric and a simple average can hide long-tail delays.
-
----
-
-## 12. Architecture
+## 10. Architecture
 
 ```mermaid
 flowchart LR
-    U[User] --> P[Reverse Proxy]
+    U[User] --> P[Reverse proxy]
     P --> F[React / Vite]
     P --> A[FastAPI / Uvicorn]
     A --> AUTH[Authentication / RBAC / CSRF]
-    A --> CACHE[Bounded Cache]
-    A --> S[Service Layer]
-    S --> Q[Query Layer]
-    Q --> ERP[(Healthcare ERP / Oracle - read only)]
+    A --> CACHE[Bounded cache]
+    A --> S[Service layer]
+    S --> C[Generic integration contract]
+    C -. private package .-> ADAPTER[Private operational adapter]
+    ADAPTER --> ERP[(Operational ERP - read only)]
     A --> EXP[CSV / PDF / XML]
     AUTH --> LOCAL[(Local auth store)]
 ```
 
-### Technology stack
-
-| Layer | Technology |
-|---|---|
-| Frontend | React, Vite |
-| Charts | Recharts |
-| Backend | Python, FastAPI |
-| Application server | Uvicorn |
-| Database integration | Oracle |
-| Local auth state | SQLite |
-| Reverse proxy | Apache-compatible deployment model |
-| Testing | Pytest + Node test runner |
-| CI | GitHub Actions |
-| Container demo | Docker |
-
----
-
-## 13. Backend structure
+### Public backend structure
 
 ```text
 backend/app/
 ├── api/
 ├── auth/
-├── db/
 ├── exports/
-├── models/
-├── queries/
+├── integrations/
 └── services/
 ```
 
-### API layer
+- **api/** — HTTP routes, request validation, authorization dependencies and response handling.
+- **auth/** — users, roles, sessions, CSRF and application audit events.
+- **integrations/** — public adapter protocol, dynamic registry and safe unavailable default.
+- **services/** — business rules, temporal semantics, metric composition and caching.
+- **exports/** — CSV, PDF and XML generation.
 
-Responsible for:
+The public repository contains no embedded operational SQL implementation and no concrete database driver.
 
-- HTTP routes;
-- request validation;
-- authorization dependencies;
-- limits;
-- response handling.
+## 11. Integration boundary
 
-### Query layer
+The application treats the operational ERP as an external system of record.
 
-Contains SQL organized by business domain.
+Public code depends on the generic contract:
 
-The query layer is intentionally separated from route handlers so database-specific behavior does not leak across the application.
+```text
+Application
+    ↓
+Domain / services
+    ↓
+Integration interface
+    ↓
+Private operational adapter
+    ↓
+Operational ERP
+```
 
-### Service layer
+The private adapter owns:
 
-Responsible for:
+- concrete database/client dependencies;
+- connection management;
+- operational queries;
+- table/view/field mappings;
+- validated internal codes;
+- environment-specific configuration;
+- source-specific troubleshooting.
 
-- business rules;
-- date semantics;
-- metric composition;
-- cache orchestration;
-- financial classifications.
+The public repository intentionally owns none of those details.
 
-### Database layer
+### Adapter loading
 
-Responsible for:
+A private deployment can provide an implementation through:
 
-- Oracle client initialization;
-- connection pooling;
-- executing read-only queries;
-- transforming result sets into application records.
+```text
+DATA_ADAPTER=package.module:factory
+```
 
-### Export layer
+If no private adapter is installed, the public backend reports the operational integration as unavailable. It does not embed guessed mappings or silently substitute production data.
 
-Supports structured reporting such as:
+## 12. Read-only rule
 
-- CSV;
-- PDF;
-- XML.
+The operational adapter must be read-only.
 
----
+The dashboard must not become a write path for patient, encounter, account, billing, receipt or adjustment records. Application-specific state such as users and sessions remains separate from the operational ERP.
 
-## 14. Read-only ERP boundary
+## 13. Performance controls
 
-The application treats the healthcare ERP as the system of record.
+The service layer protects the operational source through:
 
-The analytical connection is read-only by design.
+- maximum analytical date ranges;
+- explicit row limits;
+- lazy loading of expensive detail;
+- bounded in-memory cache;
+- TTL-based invalidation;
+- single-flight loading for equivalent concurrent requests.
 
-The dashboard must not become a write path for:
+The exact connection-pool and source-specific tuning strategy belongs to the private adapter/runbook.
 
-- patients;
-- attendances;
-- accounts;
-- billing;
-- remittances;
-- receipt events;
-- denials.
+## 14. Frontend strategy
 
-Application-specific state such as users and sessions is kept outside the ERP.
+The frontend is organized around executive visibility plus drill-down.
 
----
-
-## 15. Database protection strategy
-
-Analytical applications can create significant load on operational databases.
-
-The system therefore uses multiple controls.
-
-### Small connection pool
-
-The backend keeps the Oracle pool intentionally bounded.
-
-The goal is not maximum concurrency; it is predictable, controlled access to the source ERP.
-
-### Query limits
-
-Detailed endpoints use explicit row limits.
-
-### Maximum date range
-
-The service layer rejects excessively large analytical periods.
-
-### Lazy loading
-
-Heavy detail queries are only executed when users open the corresponding view.
-
-### Bounded cache
-
-Frequently repeated analytical responses are cached with TTL and a maximum number of entries.
-
-### Single-flight loading
-
-Equivalent concurrent requests are serialized by key so the same expensive query is not unnecessarily executed multiple times at once.
-
----
-
-## 16. Frontend strategy
-
-The frontend is organized around executive visibility and drill-down.
-
-Main functional areas include:
+Primary areas include:
 
 - integrated overview;
-- accounts and patients;
 - receipts;
-- denials and pending items;
+- accounts and patients;
+- denials/adjustments and pending items;
 - analytics;
 - reports;
 - administration.
 
-Large datasets are not loaded at application startup.
+Large detail datasets are loaded only when the corresponding view is opened.
 
-This reduces initial latency and protects the backend and source database.
+## 15. Security model
 
----
+### Authentication and authorization
 
-## 17. Security model
+End users authenticate against the application rather than the operational ERP. RBAC separates administrative, operational, audit and read-only responsibilities.
 
-### Application authentication
+### Passwords and sessions
 
-End users authenticate against the application, not directly against Oracle.
-
-### Role-based access control
-
-The system separates responsibilities into roles such as:
-
-- administrator;
-- billing operations;
-- audit;
-- read-only executive access.
-
-### Password storage
-
-Passwords are hashed with a memory-hard password derivation function and random salt.
-
-Plain-text passwords are never stored.
-
-### Sessions
-
-Session tokens are random.
-
-Only their hash is stored in the local authentication database.
-
-Sessions have configurable expiration.
+Passwords use salted `scrypt` hashing. Session tokens are random, have configurable expiration and are stored as hashes in the local auth store.
 
 ### CSRF
 
-State-changing application operations use CSRF validation.
+State-changing application operations require CSRF validation.
 
-### Cookies
+### CORS and cookies
 
-Production deployments should use secure cookie settings under HTTPS.
+Credentialed CORS uses explicit origins. Production deployments should use HTTPS and secure-cookie settings.
 
-### CORS
+### Repository boundary
 
-Allowed origins should be explicit when credentials are enabled.
+The public repository must not contain:
 
-### Secrets
+- patient-identifying information;
+- operational credentials;
+- private keys or certificates;
+- database/session artifacts;
+- internal hosts or network identifiers;
+- operational SQL;
+- ERP schema/table/view/field mappings;
+- production exports, logs or backups;
+- personal names in published content.
 
-Credentials and environment-specific values are injected through environment configuration and are not committed to source control.
+## 16. Observability
 
----
+Requests are correlated through a request identifier. Application logs can include route, method, status and elapsed time without exposing private operational mappings.
 
-## 18. Auditability and observability
+Authentication and administrative audit events are maintained in the application auth store.
 
-Each request can be correlated using a request identifier.
+## 17. Health checks
 
-Application access logs include information such as:
+The architecture distinguishes application health from integration health.
 
-- request ID;
-- route;
-- HTTP method;
-- status;
-- elapsed time.
+- **Application health** — confirms the API process is running.
+- **Integration health** — reports whether a compatible operational adapter is configured and available.
 
-The system also maintains authentication and administrative audit events in the application auth store.
+The public health contract does not need to expose database vendor or network details.
 
----
+## 18. Configuration
+
+Public-safe runtime categories include:
+
+- `DATA_ADAPTER`;
+- default synthetic/public payer identifier;
+- auth database path;
+- session lifetime;
+- secure-cookie setting.
+
+Concrete operational adapter credentials and connection descriptors are private deployment concerns.
 
 ## 19. Deployment model
-
-The deployment design follows a conventional Linux pattern:
 
 ```text
 Client
@@ -516,279 +360,109 @@ Reverse proxy
        ↓
    application server
        ↓
-   Oracle / ERP
+   generic integration contract
+       ↓
+   private operational adapter
+       ↓
+   operational ERP
 ```
 
-The application server listens only on the local interface in the production design and is exposed through the reverse proxy.
+Exact service names, production paths, internal hosts and network layout are intentionally excluded.
 
-This reduces unnecessary network exposure and keeps TLS, static content and proxy concerns outside the Python application.
+## 20. Testing strategy
 
----
+### Backend
 
-## 20. Service supervision
+Tests cover:
 
-The backend is designed to run under a service manager.
-
-Benefits include:
-
-- automatic startup;
-- restart on failure;
-- centralized logs;
-- execution under a dedicated operating-system user;
-- predictable working directory and environment.
-
-Exact production service names, paths and infrastructure identifiers are intentionally not documented in this public guide.
-
----
-
-## 21. Health checks
-
-The architecture separates application health from database connectivity.
-
-### Application health
-
-Confirms the API process is running.
-
-### Database health
-
-Confirms the application can perform a minimal Oracle query.
-
-This distinction helps operators differentiate application failures from database or network failures without exposing implementation details publicly.
-
----
-
-## 22. Configuration management
-
-Environment-specific settings belong outside source control.
-
-Typical categories include:
-
-- database username;
-- database password;
-- database connection descriptor;
-- session lifetime;
-- auth database path;
-- secure-cookie flag;
-- application-specific runtime settings.
-
-The public repository contains only safe examples.
-
----
-
-## 23. Testing strategy
-
-The current test strategy covers several risk areas.
-
-### Security and authentication
-
-- password hash verification;
-- token generation;
-- session lifecycle;
-- password rotation.
-
-### Application behavior
-
+- authentication/session behavior;
+- security helpers;
+- cache behavior;
 - date-range validation;
-- domain parsing;
-- receipt/balance aggregation;
-- request correlation.
+- domain/financial calculations;
+- public integration-boundary behavior;
+- HTTP-level application behavior.
 
-### Cache
+### Frontend
 
-- cache reuse;
-- TTL expiration;
-- duplicate-load prevention.
+The deterministic synthetic dataset is tested so the public demo preserves the intended financial semantics.
 
-### Frontend demo
+### Integration boundary
 
-The synthetic dataset is validated to ensure the public demo preserves the intended financial semantics.
+The public test suite verifies that the default adapter is unavailable rather than accidentally invoking a real operational integration.
 
----
+## 21. CI
 
-## 24. CI pipeline
-
-The CI pipeline validates:
-
-### Repository hygiene
+CI validates:
 
 - required public files;
 - prohibited sensitive file types;
+- known internal-environment references;
+- personal-name references;
+- known private-adapter implementation identifiers;
 - common secret patterns;
-- internal-environment references.
-
-### Backend quality
-
-- lint;
-- tests.
-
-### Frontend quality
-
-- demo-data tests;
+- backend lint/tests;
+- frontend demo tests;
 - production build;
-- synthetic demo build.
+- synthetic demo build;
+- demo-container build.
 
-### Container validation
+A change should not be considered complete while CI is red.
 
-- Docker image build for the public demo.
+## 22. Synthetic demo
 
-A change should not be considered complete while the CI pipeline is red.
+The demo exists so reviewers can evaluate workflows without access to a private operational environment.
 
----
+All people, accounts, financial events, identifiers and values used by demo mode are fictional.
 
-## 25. Synthetic demo
+## 23. Engineering lessons
 
-The public repository includes a deterministic demo mode.
+1. **Field names alone do not prove business meaning.** A paid-status field is not a substitute for a validated receipt event.
+2. **Aggregation can hide errors.** Traceability should exist before KPI presentation.
+3. **Financial dates must remain explicit.** Production, competence and receipt belong to separate clocks.
+4. **Operational integration requires restraint.** Cache, limits and lazy loading are source-protection controls.
+5. **Financial differences require decomposition.** Billed minus received is not automatically denial or loss.
+6. **Public architecture should not expose private mappings.** The application depends on a stable contract; operational implementation remains private.
 
-It exists so reviewers can evaluate the application without access to:
+## 24. Known modeling boundary
 
-- a private Oracle environment;
-- healthcare institution infrastructure;
-- real patients;
-- real accounts;
-- production credentials.
+Historical competence analysis must remain careful when one logical account contains billing items associated with multiple competences.
 
-All demo people, amounts, receipt events and account identifiers are fictional.
+A production-grade private adapter must validate whether allocation occurs at account grain, item × competence grain or another approved financial grain. The public repository documents the modeling issue without exposing the operational mapping.
 
----
+## 25. Maintenance checklist
 
-## 26. Engineering lessons
-
-### 26.1 Database field names are not enough
-
-A field that appears to represent a paid status does not necessarily identify the actual receipt date.
-
-Business semantics must be validated against the complete workflow.
-
-### 26.2 Aggregation can hide errors
-
-The system favors item/account traceability before aggregate KPIs.
-
-### 26.3 Financial dates must remain explicit
-
-Production, billing and receipt must retain their own temporal semantics.
-
-### 26.4 Operational ERP access requires restraint
-
-Connection limits, cache, lazy loading and explicit result limits are operational safeguards, not only performance optimizations.
-
-### 26.5 Financial differences require decomposition
-
-A difference between billed and received values can result from several mechanisms.
-
-It should not automatically be labeled as denial or loss.
-
-### 26.6 Business correctness comes before visual polish
-
-The most important evolution of the project was not graphical.
-
-It was the move from simple paid/unpaid indicators toward traceable financial-event modeling.
-
----
-
-## 27. Public vs private documentation boundary
-
-### Public repository
-
-The public portfolio may describe:
-
-- business problem;
-- architecture;
-- generic domain model;
-- financial semantics;
-- security controls;
-- caching;
-- RBAC;
-- CI;
-- Docker;
-- tests;
-- engineering lessons.
-
-### Private operational runbook
-
-The following information belongs outside the public repository:
-
-- vendor-specific database object names;
-- exact schema names;
-- internal identifiers;
-- production codes;
-- exact relationship mappings used for homologation;
-- credentials;
-- internal hosts;
-- network layout details;
-- production filesystem paths;
-- institution-specific operational procedures;
-- production troubleshooting history.
-
-The private runbook should be access-controlled and maintained separately.
-
----
-
-## 28. Known modeling boundary
-
-Historical competence analysis must remain careful when one logical account can contain billing items associated with multiple competences.
-
-A production-grade implementation must validate whether allocation should occur at:
-
-```text
-account level
-```
-
-or:
-
-```text
-invoice-item × competence level
-```
-
-The public documentation intentionally describes the issue generically rather than exposing vendor-specific implementation details.
-
----
-
-## 29. Maintenance checklist
-
-Before adding a new metric, answer:
+Before adding a metric:
 
 1. What business question does it answer?
-2. Which date defines the period?
+2. Which date defines its period?
 3. What is the aggregation grain?
-4. Can joins create duplication?
+4. Can joins or adapter composition duplicate values?
 5. Can events be reversed?
-6. Is the amount billed, received, denied, adjusted or cost?
-7. Is account-level drill-down available?
-8. What is the expected behavior for null values?
+6. Is the amount billed, received, adjusted or cost?
+7. Is drill-down available?
+8. What is the null behavior?
 9. What monetary tolerance is acceptable?
-10. Can the query overload the source database?
+10. Could the request overload the operational source?
 
 Before release:
 
-1. run backend lint and tests;
-2. run frontend tests and build;
-3. validate the demo;
-4. confirm repository hygiene checks;
-5. review new documentation for sensitive operational details;
-6. confirm CI is green.
+1. run backend lint/tests;
+2. run frontend tests/build;
+3. validate synthetic demo;
+4. build the demo container;
+5. confirm repository hygiene;
+6. review documentation for private implementation details;
+7. confirm CI is green.
 
----
-
-## 30. Summary for new engineers
+## 26. Summary
 
 Five principles explain most of the system:
 
-1. **Production, billing and receipt are different business clocks.**
-2. **Operational paid status is not a substitute for a financial receipt event.**
-3. **Financial values must remain traceable to account/item-level composition.**
+1. **Production, billing competence and receipt are different business clocks.**
+2. **Operational status is not a substitute for a financial receipt event.**
+3. **Financial values should remain traceable to account/item composition.**
 4. **Billed minus received is not automatically a denial.**
-5. **The ERP integration is read-only and operationally constrained.**
+5. **The operational ERP implementation belongs behind a private read-only adapter.**
 
-These principles should remain stable even if the underlying ERP, database objects or deployment environment change.
-
----
-
-## 31. Conclusion
-
-The Oncology Management Dashboard is designed as a traceable analytical layer over a healthcare revenue-cycle system.
-
-Its engineering priorities are:
-
-**semantic correctness, auditability, controlled database access, security and reproducibility.**
-
-The public repository documents those principles without exposing the private operational mapping required to run the production environment.
+These principles should remain stable even if the underlying ERP, database technology or deployment environment changes.
