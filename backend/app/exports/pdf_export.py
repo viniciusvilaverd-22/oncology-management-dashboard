@@ -319,7 +319,7 @@ def build_pdf(
     note = Table([[Paragraph(
         "<b>Nota de precisao financeira:</b> recebimentos reais usam receipt_date e os valores alocados em "
         "ReceiptAdjustment. O indicador batch_paid_flag da remessa permanece apenas como status operacional. "
-        "DT_RECEBIMENTO e apresentada como data de recebimento registrada no financeiro, nao como data bancaria.",
+        "receipt_date e apresentada como data de recebimento registrada no financeiro, nao como data bancaria.",
         S_BODY,
     )]], colWidths=[255 * mm])
     note.setStyle(TableStyle([
@@ -589,11 +589,11 @@ def build_pdf(
     # Methodology / provenance
     story += [PageBreak(), Paragraph("Metodologia e rastreabilidade", S_SECTION)]
     methodological = [
-        "O relatorio consolida dados assistenciais e financeiros vinculados aos atendimentos oncologicos do convenio Convênio Demo (CD_CONVENIO=11).",
+        "O relatorio consolida dados assistenciais e financeiros vinculados aos atendimentos oncologicos do convenio Convênio Demo.",
         "As consultas sao somente leitura e o periodo operacional permanece limitado a 93 dias por execucao.",
         "Faturamento, remessa e recebimento sao tratados como eventos distintos. O status do BillingBatch permanece separado dos eventos financeiros.",
         "Recebimentos reais usam receipt_date e ReceiptAdjustment; InvoiceItem e InvoiceItem fornecem conta, remessa, competencia e rastreabilidade assistencial.",
-        "DT_RECEBIMENTO e apresentada como data de recebimento registrada no financeiro, sem inferir data bancaria quando essa informacao nao esta comprovada.",
+        "receipt_date e apresentada como data de recebimento registrada no financeiro, sem inferir data bancaria quando essa informacao nao esta comprovada.",
         "Glosas sao vinculadas diretamente as contas oncologicas identificadas no periodo. O regra demonstrativa de ajuste e tratado como revertido apenas na regra previamente validada para este fluxo Convênio Demo.",
     ]
     for item in methodological:
@@ -640,7 +640,7 @@ def build_account_pdf(payload: dict) -> bytes:
     convenio_label = "Convênio Demo · Convênio 11" if str(payer_id) == "11" else f"Convênio {safe(payer_id)}"
     remetida = bool(conta.get("billing_batch_id"))
     remessa_label = safe(conta.get("billing_batch_id")) if remetida else "Não remetida"
-    nr_remessa_label = safe(conta.get("payer_batch_reference")) if remetida else "Não remetida"
+    payer_reference_label = safe(conta.get("payer_batch_reference")) if remetida else "Não remetida"
     fechamento_label = short_date(conta.get("billing_batch_close_date")) if remetida else "Não remetida"
     story += [
         Paragraph("DETALHAMENTO DE CONTA", ParagraphStyle("AccEyebrow", parent=S_SMALL, fontName="Helvetica-Bold", textColor=GOLD)),
@@ -653,7 +653,7 @@ def build_account_pdf(payload: dict) -> bytes:
         ["Paciente", safe(conta.get("patient_name")), "Código paciente", safe(conta.get("patient_id"))],
         ["Atendimento", safe(conta.get("encounter_id")), "Data atendimento", short_date(conta.get("encounter_date"))],
         ["Convênio", convenio_label, "Remessa", remessa_label],
-        ["Nº remessa convênio", nr_remessa_label, "Fechamento", fechamento_label],
+        ["Nº remessa convênio", payer_reference_label, "Fechamento", fechamento_label],
         ["Status", safe(conta.get("status_financeiro")).replace("_", " "), "Último recebimento", short_date(conta.get("ultimo_recebimento"))],
     ]
     t = Table([[P(c, S_CELL) for c in row] for row in info], colWidths=[34*mm, 94*mm, 40*mm, 87*mm])

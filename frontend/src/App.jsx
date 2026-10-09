@@ -1148,7 +1148,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                       </div>
 
                       <div className="inline-note">
-                        <strong>Diferença para Produção:</strong> aqui o valor é somado item a item e o período usa a competência da fatura. A análise de Produção usa contas da coorte por DT_PRODUCAO.
+                        <strong>Diferença para Produção:</strong> aqui o valor é somado item a item e o período usa a competência da fatura. A análise de Produção usa contas da coorte por production_date.
                       </div>
                     </>
                   )}
@@ -1327,7 +1327,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
                     <Section
                       title="Eventos de recebimento"
-                      subtitle="Cada linha é um CD_ReceiptEvent. Clique em um evento para abrir os itens, contas, pacientes e remessas que o compõem."
+                      subtitle="Cada linha é um ReceiptEvent. Clique em um evento para abrir os itens, contas, pacientes e remessas que o compõem."
                       actions={<button className="secondary-button" type="button" onClick={() => runLazy("pagEventos", () => api.pagamentosEventos(fInicio, fFim, 500), setPagEventos)}>Carregar eventos</button>}
                     >
                       {loading.pagEventos ? <div className="empty-state">Consultando eventos…</div> : pagEventos.length ? (
@@ -1577,7 +1577,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                 <Section title="Eventos de glosa">
                   {loading.glosas ? <div className="empty-state">Consultando eventos…</div> : (
                     <DataTable
-                      keyField="cd_glosas"
+                      keyField="adjustment_id"
                       rows={glosas}
                       columns={[
                         { key: "adjustment_date", label: "Data", render: shortDate },
@@ -1683,7 +1683,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
             <div className="account-meta"><div><span>Status</span><StatusBadge value={accountDetail.conta.status_financeiro}/></div><div><span>Remessa</span><strong>{accountDetail.conta.billing_batch_id || "Sem remessa"}</strong></div><div><span>Último recebimento</span><strong>{shortDate(accountDetail.conta.ultimo_recebimento)}</strong></div><div><span>Itens</span><strong>{int(accountDetail.itens?.length)}</strong></div></div>
             <div className="detail-body"><div className="detail-section-title"><div><span className="detail-kicker">COMPOSIÇÃO</span><h3>Itens da conta</h3></div><span className="source-chip">InvoiceItem + BillingItem</span></div><DataTable columns={itemCols} rows={accountDetail.itens || []} keyField="line_item_id" empty="Nenhum item localizado para esta conta." />
               {accountDetail.recebimentos?.length > 0 && <><h3>Recebimentos vinculados</h3><DataTable keyField="receipt_event_id" rows={accountDetail.recebimentos} columns={[{key:"receipt_event_id",label:"Evento"},{key:"receipt_date",label:"Data financeira",render:shortDate},{key:"vl_recebido_base",label:"Recebido base",render:brl,className:"number"},{key:"vl_acrescimo",label:"Acréscimo",render:brl,className:"number"},{key:"vl_glosa",label:"Glosa",render:brl,className:"number"}]} /></>}
-              {accountDetail.glosas?.length > 0 && <><h3>Glosas da conta</h3><DataTable keyField="cd_glosas" rows={accountDetail.glosas} columns={[{key:"adjustment_date",label:"Data",render:shortDate},{key:"billing_item_description",label:"Procedimento"},{key:"adjustment_reason_description",label:"Motivo"},{key:"vl_glosa",label:"Valor",render:brl,className:"number"}]} /></>}
+              {accountDetail.glosas?.length > 0 && <><h3>Glosas da conta</h3><DataTable keyField="adjustment_id" rows={accountDetail.glosas} columns={[{key:"adjustment_date",label:"Data",render:shortDate},{key:"billing_item_description",label:"Procedimento"},{key:"adjustment_reason_description",label:"Motivo"},{key:"vl_glosa",label:"Valor",render:brl,className:"number"}]} /></>}
             </div>
           </>}
         </div>

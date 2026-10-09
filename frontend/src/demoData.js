@@ -130,8 +130,8 @@ const eventItems = {
 };
 
 const denials = [
-  { cd_glosas: 60001, adjustment_date: "2026-09-18", account_id: 81002, encounter_id: 51002, billing_item_description: "Terapia antineoplásica - sessão", adjustment_reason_description: "Divergência documental", vl_glosa: 600, status_analitico: "ATIVA" },
-  { cd_glosas: 60002, adjustment_date: "2026-09-14", account_id: 81003, encounter_id: 51003, billing_item_description: "Materiais e medicamentos", adjustment_reason_description: "Validação contratual", vl_glosa: 600, status_analitico: "ATIVA" },
+  { adjustment_id: 60001, adjustment_date: "2026-09-18", account_id: 81002, encounter_id: 51002, billing_item_description: "Terapia antineoplásica - sessão", adjustment_reason_description: "Divergência documental", vl_glosa: 600, status_analitico: "ATIVA" },
+  { adjustment_id: 60002, adjustment_date: "2026-09-14", account_id: 81003, encounter_id: 51003, billing_item_description: "Materiais e medicamentos", adjustment_reason_description: "Validação contratual", vl_glosa: 600, status_analitico: "ATIVA" },
 ];
 
 const monthlyProduction = [

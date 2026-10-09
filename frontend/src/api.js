@@ -39,7 +39,7 @@ export const api = {
   capabilities: () => getJson(`/api/onco/capabilities`),
   auditLog: (limit = 200) => getJson(`/api/auth/audit-log?limit=${limit}`),
   resumo: (inicio, fim) => getJson(`/api/onco/resumo?${qs(inicio, fim)}`),
-  resumoIntegrado: (inicio, fim, setores = "113") => getJson(`/api/onco/resumo-integrado?${qs(inicio, fim, setores ? { setores } : {})}`),
+  resumoIntegrado: (inicio, fim, setores = "10") => getJson(`/api/onco/resumo-integrado?${qs(inicio, fim, setores ? { setores } : {})}`),
   financeiro: (inicio, fim) => getJson(`/api/onco/financeiro?${qs(inicio, fim)}`),
   financeiroMensal: (inicio, fim) => getJson(`/api/onco/financeiro/mensal?${qs(inicio, fim)}`),
   faturamentoCompetenciaResumo: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/resumo?${qs(inicio, fim, setores ? { setores } : {})}`),
