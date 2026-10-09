@@ -1,3 +1,5 @@
+import { DEMO_MODE, demoConvenios, demoSession } from "./demoData.js";
+
 const API_BASE = import.meta.env.VITE_API_BASE || "";
 
 function csrfFromCookie() {
@@ -6,6 +8,21 @@ function csrfFromCookie() {
 }
 
 async function request(path, options = {}) {
+  if (DEMO_MODE) {
+    if (path === "/api/auth/me" || path === "/api/auth/login") return demoSession;
+    if (path === "/api/auth/logout") return { status: "ok" };
+    if (path === "/api/auth/convenios") return demoConvenios;
+    if (path === "/api/auth/users") return [demoSession.user];
+    if (path.startsWith("/api/auth/audit-log")) {
+      return [
+        { id: 1, occurred_at: "2026-10-01T12:00:00Z", actor_username: "portfolio", event_type: "LOGIN_OK", details: "Demo session", remote_addr: "127.0.0.1" },
+        { id: 2, occurred_at: "2026-10-01T12:05:00Z", actor_username: "portfolio", event_type: "REPORT_VIEWED", details: "Synthetic dataset", remote_addr: "127.0.0.1" },
+      ];
+    }
+    if (path.startsWith("/api/auth/users/")) return demoSession.user;
+    if (path === "/api/auth/users") return demoSession.user;
+  }
+
   const headers = { "Content-Type": "application/json", ...(options.headers || {}) };
   const method = (options.method || "GET").toUpperCase();
   if (!["GET", "HEAD"].includes(method)) {
