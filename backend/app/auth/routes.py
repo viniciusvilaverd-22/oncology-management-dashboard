@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 from app.auth.deps import COOKIE_NAME, CSRF_COOKIE, require_admin, require_csrf, require_user
 from app.auth.store import authenticate, create_session, create_user, delete_session, list_users, update_user, change_password, log_event, list_audit_events, get_user, count_active_admins
 from app.config import settings
-from app.db.oracle import fetch_all
+from app.integrations.registry import get_adapter
 
 router = APIRouter(prefix='/api/auth', tags=['Autenticação'])
 
@@ -72,23 +72,18 @@ def me(request: Request, user: dict = Depends(require_user)):
 
 @router.get('/convenios')
 def convenios(user: dict = Depends(require_user)):
-    rows = fetch_all('''
-      SELECT DISTINCT C.CD_CONVENIO, C.NM_CONVENIO
-      FROM DBAMV.CONVENIO C
-      JOIN DBAMV.EMPRESA_CONVENIO EC ON EC.CD_CONVENIO=C.CD_CONVENIO AND EC.CD_MULTI_EMPRESA=1
-      ORDER BY C.NM_CONVENIO
-    ''', {})
+    rows = get_adapter().list_payers()
     allowed = None if user.get('all_convenios') else set(user.get('convenios') or [])
     out = []
     for row in rows:
-        cd = int(row.get('cd_convenio'))
-        if allowed is not None and cd not in allowed:
+        payer_id = int(row.get('payer_id'))
+        if allowed is not None and payer_id not in allowed:
             continue
         out.append({
-            'cd_convenio': cd,
-            'nm_convenio': row.get('nm_convenio'),
-            'modelo_homologado': cd == 11,
-            'modelo': 'ONCOLOGIA_CONVENIO_DEMO_V5' if cd == 11 else 'AGUARDANDO_HOMOLOGACAO',
+            'payer_id': payer_id,
+            'payer_name': row.get('payer_name'),
+            'modelo_homologado': bool(row.get('supported', False)),
+            'modelo': row.get('model_name') or 'PRIVATE_ADAPTER',
         })
     return out
 
