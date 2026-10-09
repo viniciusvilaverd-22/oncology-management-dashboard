@@ -18,7 +18,7 @@ Use GitHub's private security reporting feature when available. If private repor
 
 The application architecture includes:
 
-- read-only Oracle integration;
+- read-only private operational adapter boundary;
 - local application authentication;
 - role-based access control;
 - session expiration;
@@ -36,7 +36,7 @@ The repository excludes:
 
 - `.env` and environment-specific secret files;
 - local authentication databases;
-- Oracle credentials;
+- operational adapter credentials;
 - private keys and certificates;
 - generated exports;
 - build artifacts;

@@ -47,8 +47,8 @@ def init_auth_db():
         );
         CREATE TABLE IF NOT EXISTS user_convenios (
             user_id INTEGER NOT NULL,
-            cd_convenio INTEGER NOT NULL,
-            PRIMARY KEY (user_id, cd_convenio),
+            payer_id INTEGER NOT NULL,
+            PRIMARY KEY (user_id, payer_id),
             FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
         );
         CREATE TABLE IF NOT EXISTS sessions (
@@ -110,7 +110,7 @@ def create_user(username: str, display_name: str, password: str, role: str, emai
             )
             user_id = cur.lastrowid
             for cd in sorted({int(x) for x in (convenios or [])}):
-                db.execute('INSERT OR IGNORE INTO user_convenios(user_id,cd_convenio) VALUES(?,?)', (user_id, cd))
+                db.execute('INSERT OR IGNORE INTO user_convenios(user_id,payer_id) VALUES(?,?)', (user_id, cd))
     except sqlite3.IntegrityError as e:
         raise ValueError('Já existe um usuário com este login.') from e
     return get_user(user_id)
@@ -121,7 +121,7 @@ def get_user(user_id: int) -> dict | None:
         row = db.execute('SELECT id,username,display_name,email,role,active,all_convenios,created_at,updated_at,last_login_at,default_convenio,must_change_password,last_password_change_at FROM users WHERE id=?', (user_id,)).fetchone()
         if not row:
             return None
-        conv = [r['cd_convenio'] for r in db.execute('SELECT cd_convenio FROM user_convenios WHERE user_id=? ORDER BY cd_convenio', (user_id,))]
+        conv = [r['payer_id'] for r in db.execute('SELECT payer_id FROM user_convenios WHERE user_id=? ORDER BY payer_id', (user_id,))]
     data = dict(row)
     data['active'] = bool(data['active'])
     data['all_convenios'] = bool(data['all_convenios'])
@@ -172,7 +172,7 @@ def update_user(user_id: int, *, display_name: str | None = None, email: str | N
         if convenios is not None:
             db.execute('DELETE FROM user_convenios WHERE user_id=?', (user_id,))
             for cd in sorted({int(x) for x in convenios}):
-                db.execute('INSERT INTO user_convenios(user_id,cd_convenio) VALUES(?,?)', (user_id, cd))
+                db.execute('INSERT INTO user_convenios(user_id,payer_id) VALUES(?,?)', (user_id, cd))
         if active is False:
             db.execute('DELETE FROM sessions WHERE user_id=?', (user_id,))
     return get_user(user_id)

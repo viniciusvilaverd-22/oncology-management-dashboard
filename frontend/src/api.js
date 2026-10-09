@@ -1,10 +1,10 @@
 import { DEMO_MODE, demoDownloadUrl, demoResponse } from "./demoData.js";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "";
-let currentConvenioId = Number(localStorage.getItem("oncology_convenio") || 11);
+let currentConvenioId = Number(localStorage.getItem("oncology_payer") || 100);
 
 export function setApiConvenio(cd) {
-  currentConvenioId = Number(cd || 11);
+  currentConvenioId = Number(cd || 100);
 }
 
 function qs(inicio, fim, extra = {}) {
@@ -16,7 +16,7 @@ async function getJson(path) {
 
   const response = await fetch(`${API_BASE}${path}`, {
     credentials: "include",
-    headers: { "X-Convenio-Id": String(currentConvenioId || 11) },
+    headers: { "X-Payer-Id": String(currentConvenioId || 100) },
   });
   const raw = await response.text();
   let payload; let parsed = false;
@@ -42,9 +42,9 @@ export const api = {
   resumoIntegrado: (inicio, fim, setores = "113") => getJson(`/api/onco/resumo-integrado?${qs(inicio, fim, setores ? { setores } : {})}`),
   financeiro: (inicio, fim) => getJson(`/api/onco/financeiro?${qs(inicio, fim)}`),
   financeiroMensal: (inicio, fim) => getJson(`/api/onco/financeiro/mensal?${qs(inicio, fim)}`),
-  faturamentoMvResumo: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/resumo?${qs(inicio, fim, setores ? { setores } : {})}`),
-  faturamentoMvMensal: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/mensal?${qs(inicio, fim, setores ? { setores } : {})}`),
-  faturamentoMvSetores: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/setores?${qs(inicio, fim, setores ? { setores } : {})}`),
+  faturamentoCompetenciaResumo: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/resumo?${qs(inicio, fim, setores ? { setores } : {})}`),
+  faturamentoCompetenciaMensal: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/mensal?${qs(inicio, fim, setores ? { setores } : {})}`),
+  faturamentoCompetenciaSetores: (inicio, fim, setores = "") => getJson(`/api/onco/faturamento-competencia/setores?${qs(inicio, fim, setores ? { setores } : {})}`),
   comparativo: (inicio, fim) => getJson(`/api/onco/comparativo?${qs(inicio, fim)}`),
   pagamentosResumo: (inicio, fim) => getJson(`/api/onco/pagamentos/resumo?${qs(inicio, fim)}`),
   historicoCompetencias: (inicio, fim) => getJson(`/api/onco/historico-competencias?${qs(inicio, fim)}`),
@@ -69,7 +69,7 @@ export const api = {
   pdfUrl: (inicio, fim, detalhado = false) => DEMO_MODE ? demoDownloadUrl(`oncology-report-${inicio}-${fim}.txt`, detalhado ? "Synthetic detailed report" : "Synthetic executive report") : `${API_BASE}/api/onco/export/pdf?${qs(inicio, fim, { detalhado })}`,
   xmlUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`oncology-${inicio}-${fim}.txt`, "Synthetic XML export preview") : `${API_BASE}/api/onco/export/xml?${qs(inicio, fim)}`,
   pagamentosCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`payments-${inicio}-${fim}.txt`, "Synthetic payments export") : `${API_BASE}/api/onco/export/pagamentos.csv?${qs(inicio, fim)}`,
-  faturamentoMvCsvUrl: (inicio, fim, setores = "") => DEMO_MODE ? demoDownloadUrl(`billing-${inicio}-${fim}.txt`, "Synthetic billing export") : `${API_BASE}/api/onco/export/faturamento-competencia.csv?${qs(inicio, fim, setores ? { setores } : {})}`,
+  faturamentoCompetenciaCsvUrl: (inicio, fim, setores = "") => DEMO_MODE ? demoDownloadUrl(`billing-${inicio}-${fim}.txt`, "Synthetic billing export") : `${API_BASE}/api/onco/export/faturamento-competencia.csv?${qs(inicio, fim, setores ? { setores } : {})}`,
   atendimentosCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`attendances-${inicio}-${fim}.txt`, "Synthetic attendance export") : `${API_BASE}/api/onco/export/atendimentos.csv?${qs(inicio, fim)}`,
   pacientesCsvUrl: (inicio, fim) => DEMO_MODE ? demoDownloadUrl(`patients-${inicio}-${fim}.txt`, "Synthetic patient export") : `${API_BASE}/api/onco/export/pacientes.csv?${qs(inicio, fim)}`,
 };

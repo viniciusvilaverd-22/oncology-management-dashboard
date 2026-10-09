@@ -1,6 +1,6 @@
 # Portfolio Demo
 
-This public demo runs with deterministic synthetic data and does not require an Oracle connection.
+This public demo runs with deterministic synthetic data and does not require the private operational adapter.
 
 ## Local
 

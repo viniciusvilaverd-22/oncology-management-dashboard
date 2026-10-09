@@ -2,58 +2,58 @@
 
 This document records the main architectural decisions behind the portfolio edition.
 
-## 1. Keep the source ERP read-only
+## 1. Keep the source ERP read-only and private
 
-**Decision:** Oracle access is read-only.
+**Decision:** operational data access is provided by a private read-only adapter that is not shipped in this repository.
 
-**Reasoning:** The application is an analytical and reconciliation layer. Write access would increase operational risk and blur the boundary between the dashboard and the system of record.
+**Reasoning:** the application is an analytical and reconciliation layer. Publishing schema mappings or write-capable integration code would increase operational and disclosure risk.
 
-**Consequence:** Administrative state such as users, sessions and audit events is stored separately from the ERP data source.
+**Consequence:** the public backend depends on a small adapter contract. Without a private implementation, operational endpoints fail safely while the synthetic demo remains usable.
 
 ## 2. Preserve independent business dates
 
-**Decision:** Production date, billing competence and receipt date are modeled independently.
+**Decision:** production date, billing competence and receipt date are modeled independently.
 
-**Reasoning:** A receipt recorded in one month can settle an account billed in a previous competence. Comparing only calendar-aligned totals can therefore produce misleading financial conclusions.
+**Reasoning:** a receipt recorded in one month can settle an account billed in a previous competence. Comparing only calendar-aligned totals can therefore produce misleading financial conclusions.
 
 **Consequence:** APIs and UI labels state which date drives each period filter.
 
 ## 3. Accumulate receipt events by account
 
-**Decision:** Account status uses accumulated non-reversed receipt events rather than only receipts inside the selected production period.
+**Decision:** account status uses accumulated receipt events rather than a single paid/unpaid flag.
 
-**Reasoning:** Partial and delayed payments are normal revenue-cycle events.
+**Reasoning:** partial and delayed payments are normal revenue-cycle events.
 
-**Consequence:** The application can distinguish received value, denial value and open financial balance without treating every difference as a denial.
+**Consequence:** the application can distinguish received value, adjustment value and open financial balance without treating every difference as an adjustment.
 
 ## 4. Load expensive detail on demand
 
-**Decision:** Detailed accounts, patients and receipt-event compositions are lazy-loaded.
+**Decision:** detailed accounts, patients and receipt-event compositions are lazy-loaded.
 
-**Reasoning:** Executive dashboards do not need every analytical row at startup.
+**Reasoning:** executive dashboards do not need every analytical row at startup.
 
-**Consequence:** Initial database pressure is reduced and users only pay the cost of detailed queries when they open those views.
+**Consequence:** initial pressure on the operational source is reduced and users only pay the cost of detailed reads when they open those views.
 
 ## 5. Use bounded application caching
 
-**Decision:** Repeated analytical reads use an in-memory cache with TTL, a maximum entry count and single-flight loading.
+**Decision:** repeated analytical reads use an in-memory cache with TTL, a maximum entry count and single-flight loading.
 
-**Reasoning:** Repeated Oracle queries for the same period are expensive, while the dashboard does not require millisecond-level source freshness.
+**Reasoning:** repeated operational reads for the same period are expensive, while the dashboard does not require millisecond-level source freshness.
 
-**Consequence:** The cache improves responsiveness without becoming a system of record.
+**Consequence:** the cache improves responsiveness without becoming a system of record.
 
-## 6. Separate authorization from database identity
+## 6. Separate authorization from integration identity
 
-**Decision:** Application users and roles are managed by the application rather than exposing Oracle credentials to end users.
+**Decision:** application users and roles are managed by the application rather than exposing technical integration credentials to end users.
 
-**Reasoning:** Operational access needs role-based controls that are independent from the technical database account.
+**Reasoning:** operational access needs role-based controls that are independent from the private adapter identity.
 
-**Consequence:** The application implements local users, sessions, RBAC and CSRF validation.
+**Consequence:** the application implements local users, sessions, RBAC and CSRF validation.
 
 ## 7. Make public-repository hygiene testable
 
 **Decision:** CI checks both build correctness and repository hygiene.
 
-**Reasoning:** A public portfolio should fail fast if private environment files, key material or known internal identifiers are accidentally committed.
+**Reasoning:** a public portfolio should fail fast if private environment files, personal names, operational identifiers or known integration artifacts are accidentally committed.
 
-**Consequence:** Repository-quality checks run beside backend tests and the frontend production build.
+**Consequence:** repository-quality checks run beside backend tests and the frontend production build.

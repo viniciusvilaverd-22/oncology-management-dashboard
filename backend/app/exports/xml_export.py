@@ -15,7 +15,7 @@ def build_xml(data_inicio, data_fim, resumo, financeiro, glosas, produtos):
 
     convenio = SubElement(root, "convenio")
     _value(convenio, "codigo", 11)
-    _value(convenio, "nome", "CONVENIO_DEMO")
+    _value(convenio, "nome", "Convênio Demo")
 
     r = SubElement(root, "resumo")
     for k, v in (resumo or {}).items():

@@ -309,16 +309,16 @@ def get_pacientes(data_inicio: date, data_fim: date, limit: int = 100):
     return rows[:limit]
 
 
-def get_paciente_contas(data_inicio: date, data_fim: date, cd_paciente: int):
+def get_paciente_contas(data_inicio: date, data_fim: date, patient_id: int):
     b = binds(data_inicio, data_fim)
-    b["cd_paciente"] = int(cd_paciente)
+    b["patient_id"] = int(patient_id)
     _require_patient_support()
     return _all("patient_accounts", b)
 
 
-def get_conta_detalhe(cd_reg_amb: int):
-    conta_id = int(cd_reg_amb)
-    params = {"cd_reg_amb": conta_id}
+def get_conta_detalhe(account_id: int):
+    conta_id = int(account_id)
+    params = {"account_id": conta_id}
     cabecalho = _one("account_header", params)
     if not cabecalho:
         raise ValueError("Conta não encontrada no adapter configurado.")
@@ -389,14 +389,14 @@ def get_pagamentos_aging(data_inicio: date, data_fim: date):
     return _cached("receipt_aging_v1", data_inicio, data_fim, lambda: _one("receipt_aging", b) or {}, 300)
 
 
-def get_pagamento_itens(cd_reccon_rec: int, limit: int = 500):
+def get_pagamento_itens(receipt_event_id: int, limit: int = 500):
     _require_receipt_support()
     limit = max(1, min(limit, 1000))
-    key = ("receipt_event_items_v1", int(cd_reccon_rec))
+    key = ("receipt_event_items_v1", int(receipt_event_id))
     hit = get_cache(key, 180)
     if hit is not None:
         return hit[:limit]
-    rows = _all("receipt_event_items", {"cd_reccon_rec": int(cd_reccon_rec)})
+    rows = _all("receipt_event_items", {"receipt_event_id": int(receipt_event_id)})
     set_cache(key, rows)
     return rows[:limit]
 

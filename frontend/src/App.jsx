@@ -196,7 +196,7 @@ function ReceiptMatrix({ rows }) {
 
 
 function AdminUsers({ convenios = [], sessionUser = null }) {
-  const emptyForm = { id:null, username:"", display_name:"", email:"", password:"", role:"VISUALIZACAO", all_convenios:false, convenios:[11], default_convenio:11, must_change_password:true, active:true };
+  const emptyForm = { id:null, username:"", display_name:"", email:"", password:"", role:"VISUALIZACAO", all_convenios:false, convenios:[100], default_convenio:100, must_change_password:true, active:true };
   const [users, setUsers] = useState([]);
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -229,8 +229,8 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
       password:"",
       role:user.role || "VISUALIZACAO",
       all_convenios:Boolean(user.all_convenios),
-      convenios:user.convenios?.length ? user.convenios : [11],
-      default_convenio:Number(user.default_convenio || user.convenios?.[0] || 11),
+      convenios:user.convenios?.length ? user.convenios : [100],
+      default_convenio:Number(user.default_convenio || user.convenios?.[0] || 100),
       must_change_password:Boolean(user.must_change_password),
       active:Boolean(user.active),
     });
@@ -287,7 +287,7 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
 
   const roleInfo = [
     ["ADMIN", "Administrador", "Acesso completo, gestão de usuários, convênios, relatórios e configurações."],
-    ["FATURAMENTO", "Faturamento", "Contas, faturamento MV, recebimentos, glosas, pendências e relatórios."],
+    ["FATURAMENTO", "Faturamento", "Contas, faturamento por competência, recebimentos, glosas, pendências e relatórios."],
     ["AUDITORIA", "Auditoria", "Leitura operacional completa, rastreabilidade e exportações; sem gestão de usuários."],
     ["VISUALIZACAO", "Visualização", "Resumo executivo e análises agregadas dos convênios autorizados."],
   ];
@@ -305,8 +305,8 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
     return true;
   });
 
-  const filteredConvenios = convenios.filter(c => `${c.nm_convenio} ${c.cd_convenio}`.toLowerCase().includes(convenioSearch.toLowerCase()));
-  const allowedForDefault = form.all_convenios ? convenios : convenios.filter(c=>form.convenios.includes(c.cd_convenio));
+  const filteredConvenios = convenios.filter(c => `${c.payer_name} ${c.payer_id}`.toLowerCase().includes(convenioSearch.toLowerCase()));
+  const allowedForDefault = form.all_convenios ? convenios : convenios.filter(c=>form.convenios.includes(c.payer_id));
 
   return <>
     <div className="admin-header">
@@ -323,7 +323,7 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
     </div>}
 
     {adminView === "convenios" && <Section title="Convênios disponíveis" subtitle="O usuário só enxerga convênios liberados em seu cadastro. Indicadores assistenciais/financeiros exigem modelo homologado por convênio.">
-      <div className="convenio-admin-grid">{convenios.map(c=><div className="convenio-admin-card" key={c.cd_convenio}><strong>{c.nm_convenio}</strong><span>Convênio {c.cd_convenio}</span><StatusBadge value={c.modelo_homologado ? "MODELO HOMOLOGADO" : "AGUARDANDO HOMOLOGAÇÃO"}/></div>)}</div>
+      <div className="convenio-admin-grid">{convenios.map(c=><div className="convenio-admin-card" key={c.payer_id}><strong>{c.payer_name}</strong><span>Convênio {c.payer_id}</span><StatusBadge value={c.modelo_homologado ? "MODELO HOMOLOGADO" : "AGUARDANDO HOMOLOGAÇÃO"}/></div>)}</div>
     </Section>}
 
     {adminView === "audit" && <Section title="Log de acessos" subtitle="Rastreabilidade de login, logout, troca de senha e alterações de usuários.">
@@ -340,14 +340,14 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
           <input className="search" placeholder="Buscar nome, usuário ou e-mail" value={userSearch} onChange={e=>setUserSearch(e.target.value)}/>
           <select value={roleFilter} onChange={e=>setRoleFilter(e.target.value)}><option value="ALL">Todos os perfis</option><option value="ADMIN">Administrador</option><option value="FATURAMENTO">Faturamento</option><option value="AUDITORIA">Auditoria</option><option value="VISUALIZACAO">Visualização</option></select>
           <select value={statusFilter} onChange={e=>setStatusFilter(e.target.value)}><option value="ALL">Todos os status</option><option value="ACTIVE">Ativos</option><option value="BLOCKED">Bloqueados</option></select>
-          <select value={convenioFilter} onChange={e=>setConvenioFilter(e.target.value)}><option value="ALL">Todos os convênios</option>{convenios.map(c=><option key={c.cd_convenio} value={c.cd_convenio}>{c.nm_convenio}</option>)}</select>
+          <select value={convenioFilter} onChange={e=>setConvenioFilter(e.target.value)}><option value="ALL">Todos os convênios</option>{convenios.map(c=><option key={c.payer_id} value={c.payer_id}>{c.payer_name}</option>)}</select>
         </div>
         {loading ? <div className="empty-state">Carregando usuários…</div> : filteredUsers.length ? <div className="admin-users-list">
           {filteredUsers.map(user=><div className="admin-user-row" key={user.id}>
             <div className="admin-avatar">{String(user.display_name||user.username||"U").trim().split(/\s+/).slice(0,2).map(x=>x[0]).join("").toUpperCase()}</div>
             <div className="admin-user-main"><strong>{user.display_name}</strong><span>{user.username}{user.email ? ` · ${user.email}` : ""}</span></div>
             <StatusBadge value={user.role}/>
-            <div className="admin-convenios"><strong>{user.all_convenios ? "Todos os convênios" : `${(user.convenios||[]).length} autorizado(s)`}</strong><span>{user.all_convenios ? "Acesso global" : (user.convenios||[]).map(cd=>convenios.find(c=>c.cd_convenio===cd)?.nm_convenio || cd).join(", ") || "Nenhum"}</span></div>
+            <div className="admin-convenios"><strong>{user.all_convenios ? "Todos os convênios" : `${(user.convenios||[]).length} autorizado(s)`}</strong><span>{user.all_convenios ? "Acesso global" : (user.convenios||[]).map(cd=>convenios.find(c=>c.payer_id===cd)?.payer_name || cd).join(", ") || "Nenhum"}</span></div>
             <span className={`access-status ${user.active?"active":"blocked"}`}>{user.active?"Ativo":"Bloqueado"}</span>
             <div className="admin-user-actions"><button className="mini-action" type="button" onClick={()=>edit(user)}>Editar</button><button className="mini-action" type="button" disabled={user.active && sessionUser?.id===user.id} title={user.active && sessionUser?.id===user.id ? "Para sua segurança, bloqueie sua conta usando outro administrador." : ""} onClick={()=>toggle(user)}>{user.active?"Bloquear":"Reativar"}</button></div>
           </div>)}
@@ -355,20 +355,20 @@ function AdminUsers({ convenios = [], sessionUser = null }) {
       </Section>
 
       {editorOpen && <div className="modal-backdrop" role="presentation" onMouseDown={(e)=>{if(e.target===e.currentTarget)resetForm()}}><div className="admin-modal" role="dialog" aria-modal="true" aria-label={form.id ? "Editar usuário" : "Novo usuário"}>
-        <div className="modal-head"><div><span className="admin-kicker">ADMINISTRAÇÃO</span><h2>{form.id ? "Editar usuário" : "Novo usuário"}</h2><p>Perfil, convênio padrão e permissões são controlados pela aplicação. O Oracle permanece read-only.</p></div><button type="button" className="modal-close" onClick={resetForm}>×</button></div>
+        <div className="modal-head"><div><span className="admin-kicker">ADMINISTRAÇÃO</span><h2>{form.id ? "Editar usuário" : "Novo usuário"}</h2><p>Perfil, convênio padrão e permissões são controlados pela aplicação. O fonte operacional permanece read-only.</p></div><button type="button" className="modal-close" onClick={resetForm}>×</button></div>
         <form className="user-form v61-user-form" onSubmit={save}>
           <label>Nome completo<input required value={form.display_name} onChange={e=>setForm({...form,display_name:e.target.value})}/></label>
           <label>Usuário<input required minLength="3" disabled={Boolean(form.id)} value={form.username} onChange={e=>setForm({...form,username:e.target.value})}/></label>
           <label>E-mail<input type="email" value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
           <label>{form.id ? "Redefinir senha (opcional)" : "Senha inicial"}<input required={!form.id} type="password" minLength={form.id?0:12} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder={form.id?"deixe vazio para manter":"mínimo 12 caracteres"}/></label>
           <label>Perfil<select value={form.role} onChange={e=>setForm({...form,role:e.target.value})}><option value="ADMIN">Administrador</option><option value="FATURAMENTO">Faturamento</option><option value="AUDITORIA">Auditoria</option><option value="VISUALIZACAO">Visualização</option></select></label>
-          <label>Convênio padrão<select value={form.default_convenio || ""} onChange={e=>setForm({...form,default_convenio:Number(e.target.value)})}><option value="">Selecione</option>{allowedForDefault.map(c=><option key={c.cd_convenio} value={c.cd_convenio}>{c.nm_convenio} · Convênio {c.cd_convenio}</option>)}</select></label>
+          <label>Convênio padrão<select value={form.default_convenio || ""} onChange={e=>setForm({...form,default_convenio:Number(e.target.value)})}><option value="">Selecione</option>{allowedForDefault.map(c=><option key={c.payer_id} value={c.payer_id}>{c.payer_name} · Convênio {c.payer_id}</option>)}</select></label>
           {form.id && <label>Status<select value={form.active?"1":"0"} onChange={e=>setForm({...form,active:e.target.value==="1"})}><option value="1">Ativo</option><option value="0">Bloqueado</option></select></label>}
           <div className="convenio-permission-box">
             <div className="permission-toolbar"><label className="check-field"><input type="checkbox" checked={form.all_convenios} onChange={e=>setForm({...form,all_convenios:e.target.checked})}/> <strong>Acesso a todos os convênios</strong></label><label className="check-field"><input type="checkbox" checked={form.must_change_password} onChange={e=>setForm({...form,must_change_password:e.target.checked})}/> <strong>Exigir troca de senha no próximo acesso</strong></label></div>
             {!form.all_convenios && <>
               <div className="convenio-picker-head"><div><strong>Convênios autorizados</strong><span>{form.convenios.length} selecionado(s)</span></div><input className="search" value={convenioSearch} onChange={e=>setConvenioSearch(e.target.value)} placeholder="Buscar convênio ou código"/></div>
-              <div className="convenio-check-scroll"><div className="convenio-check-grid">{filteredConvenios.map(c=><label className="convenio-check" key={c.cd_convenio}><input type="checkbox" checked={form.convenios.includes(c.cd_convenio)} onChange={()=>toggleConvenio(c.cd_convenio)}/><span><strong>{c.nm_convenio}</strong><small>Convênio {c.cd_convenio}{c.modelo_homologado?" · homologado":""}</small></span></label>)}</div>{filteredConvenios.length===0 && <div className="empty-state compact">Nenhum convênio encontrado.</div>}</div>
+              <div className="convenio-check-scroll"><div className="convenio-check-grid">{filteredConvenios.map(c=><label className="convenio-check" key={c.payer_id}><input type="checkbox" checked={form.convenios.includes(c.payer_id)} onChange={()=>toggleConvenio(c.payer_id)}/><span><strong>{c.payer_name}</strong><small>Convênio {c.payer_id}{c.modelo_homologado?" · homologado":""}</small></span></label>)}</div>{filteredConvenios.length===0 && <div className="empty-state compact">Nenhum convênio encontrado.</div>}</div>
             </>}
           </div>
           <div className="user-form-actions"><button className="primary-action" type="submit">{form.id ? "Salvar alterações" : "Criar usuário"}</button><button className="secondary-button" type="button" onClick={resetForm}>Cancelar</button></div>
@@ -395,17 +395,17 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   const [tab, setTab] = useState("resumo");
   const [contasView, setContasView] = useState("atendimentos");
   const [pendenciasView, setPendenciasView] = useState("auditoria");
-  const [analisesView, setAnalisesView] = useState("faturamentoMv");
+  const [analisesView, setAnalisesView] = useState("faturamentoCompetencia");
 
   const [resumo, setResumo] = useState({});
   const [financeiro, setFinanceiro] = useState({});
   const [capabilities, setCapabilities] = useState({});
   const [mensal, setMensal] = useState([]);
-  const [fatMvResumo, setFatMvResumo] = useState({});
-  const [fatMvMensal, setFatMvMensal] = useState([]);
-  const [fatMvSetores, setFatMvSetores] = useState([]);
+  const [fatCompetenciaResumo, setFatMvResumo] = useState({});
+  const [fatCompetenciaMensal, setFatMvMensal] = useState([]);
+  const [fatCompetenciaSetores, setFatMvSetores] = useState([]);
   const [integrado, setIntegrado] = useState({});
-  const [setoresMv, setSetoresMv] = useState("113");
+  const [setoresCompetencia, setSetoresMv] = useState("10");
   const [atendimentos, setAtendimentos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [motivos, setMotivos] = useState([]);
@@ -446,8 +446,8 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     : TABS;
 
   useEffect(() => {
-    if (convenio?.cd_convenio) setApiConvenio(convenio.cd_convenio);
-  }, [convenio?.cd_convenio]);
+    if (convenio?.payer_id) setApiConvenio(convenio.payer_id);
+  }, [convenio?.payer_id]);
 
   async function loadBase() {
     if (!convenioSupported) return;
@@ -500,7 +500,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setLoaded({});
     setSearch("");
     if (convenioSupported) loadBase();
-  }, [fInicio, fFim, convenio?.cd_convenio, convenioSupported]);
+  }, [fInicio, fFim, convenio?.payer_id, convenioSupported]);
 
   async function runLazy(name, fn, setter) {
     if (loaded[name] || loading[name]) return;
@@ -521,7 +521,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setLoading((s) => ({ ...s, integrated: true }));
     setErro("");
     try {
-      const r = await api.resumoIntegrado(fInicio, fFim, "113");
+      const r = await api.resumoIntegrado(fInicio, fFim, "10");
       setIntegrado(r || {});
       setLoaded((s) => ({ ...s, integrated: true }));
     } catch (e) {
@@ -531,24 +531,24 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     }
   }
 
-  async function loadFaturamentoMv() {
-    if (loading.faturamentoMv) return;
-    setLoading((s) => ({ ...s, faturamentoMv: true }));
+  async function loadFaturamentoCompetencia() {
+    if (loading.faturamentoCompetencia) return;
+    setLoading((s) => ({ ...s, faturamentoCompetencia: true }));
     setErro("");
     try {
-      const filtroSetores = setoresMv.trim();
+      const filtroSetores = setoresCompetencia.trim();
       // Sequencial por desenho: reproduz a regra nativa sem abrir várias consultas pesadas em paralelo.
-      const r = await api.faturamentoMvResumo(fInicio, fFim, filtroSetores);
+      const r = await api.faturamentoCompetenciaResumo(fInicio, fFim, filtroSetores);
       setFatMvResumo(r || {});
-      const m = await api.faturamentoMvMensal(fInicio, fFim, filtroSetores);
+      const m = await api.faturamentoCompetenciaMensal(fInicio, fFim, filtroSetores);
       setFatMvMensal(m || []);
-      const st = await api.faturamentoMvSetores(fInicio, fFim, filtroSetores);
+      const st = await api.faturamentoCompetenciaSetores(fInicio, fFim, filtroSetores);
       setFatMvSetores(st || []);
-      setLoaded((s) => ({ ...s, faturamentoMv: filtroSetores || "TODOS" }));
+      setLoaded((s) => ({ ...s, faturamentoCompetencia: filtroSetores || "TODOS" }));
     } catch (e) {
-      setErro(e.message || "Falha ao consultar faturamento por competência MV.");
+      setErro(e.message || "Falha ao consultar faturamento por competência.");
     } finally {
-      setLoading((s) => ({ ...s, faturamentoMv: false }));
+      setLoading((s) => ({ ...s, faturamentoCompetencia: false }));
     }
   }
 
@@ -557,7 +557,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setLoading((s) => ({ ...s, paymentsCore: true }));
     setErro("");
     try {
-      // Sequencial por desenho: evita pico simultâneo no Oracle.
+      // Sequencial por desenho: evita pico simultâneo no fonte operacional.
       const r = await api.pagamentosResumo(fInicio, fFim);
       setPagResumo(r || {});
       const a = await api.pagamentosAging(fInicio, fFim);
@@ -590,7 +590,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
       runLazy("glosas", () => api.glosas(fInicio, fFim, 250), setGlosas);
     }
 
-    if (tab === "analises" && analisesView === "faturamentoMv" && !loaded.faturamentoMv) loadFaturamentoMv();
+    if (tab === "analises" && analisesView === "faturamentoCompetencia" && !loaded.faturamentoCompetencia) loadFaturamentoCompetencia();
     if (tab === "analises" && analisesView === "producao")
       runLazy("mensal", () => api.financeiroMensal(fInicio, fFim), setMensal);
     if (tab === "analises" && analisesView === "produtos")
@@ -608,7 +608,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setApplied([inicio, fim]);
   }
 
-  const patientName = (value, row) => privacy ? `Paciente ${row?.cd_paciente ?? "restrito"}` : (value || "-");
+  const patientName = (value, row) => privacy ? `Paciente ${row?.patient_id ?? "restrito"}` : (value || "-");
 
   const filterRows = (rows, fields) => {
     const q = search.trim().toLowerCase();
@@ -689,7 +689,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   }, [pagCompetencia]);
 
   async function abrirEvento(row) {
-    const id = row.cd_reccon_rec;
+    const id = row.receipt_event_id;
     setSelectedEvent(row);
     setEventItems([]);
     setLoading((s) => ({ ...s, eventItems: true }));
@@ -709,7 +709,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setLoading((v) => ({ ...v, patientAccounts: true }));
     setErro("");
     try {
-      const rows = await api.pacienteContas(row.cd_paciente, fInicio, fFim);
+      const rows = await api.pacienteContas(row.patient_id, fInicio, fFim);
       setPatientAccounts(rows || []);
     } catch (e) {
       setErro(e.message || "Falha ao abrir o paciente.");
@@ -719,7 +719,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   }
 
   async function abrirConta(row) {
-    const id = row?.cd_reg_amb;
+    const id = row?.account_id;
     if (!id) return;
     setSelectedAccount(row);
     setAccountDetail(null);
@@ -735,22 +735,22 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   }
 
   const itemCols = [
-    { key: "cd_lancamento", label: "Lançamento" },
-    { key: "dt_sessao", label: "Sessão", render: (v, r) => shortDate(v || r.dt_producao) },
-    { key: "cd_pro_fat", label: "Código" },
-    { key: "ds_pro_fat", label: "Descrição do item" },
-    { key: "qt_lancamento", label: "Qtde", render: (v) => num(v, 2), className: "number" },
-    { key: "vl_unitario", label: "Valor unit.", render: brl, className: "number" },
-    { key: "vl_total_conta", label: "Valor total", render: brl, className: "number" },
-    { key: "cd_guia", label: "Guia" },
+    { key: "line_item_id", label: "Lançamento" },
+    { key: "session_date", label: "Sessão", render: (v, r) => shortDate(v || r.production_date) },
+    { key: "billing_item_code", label: "Código" },
+    { key: "billing_item_description", label: "Descrição do item" },
+    { key: "quantity", label: "Qtde", render: (v) => num(v, 2), className: "number" },
+    { key: "unit_amount", label: "Valor unit.", render: brl, className: "number" },
+    { key: "account_total_amount", label: "Valor total", render: brl, className: "number" },
+    { key: "authorization_id", label: "Guia" },
   ];
 
   const atendCols = [
-    { key: "nm_paciente", label: "Paciente", render: patientName },
-    { key: "cd_atendimento", label: "Atendimento" },
-    { key: "cd_reg_amb", label: "Conta" },
-    { key: "dt_atendimento", label: "Data", render: shortDate },
-    { key: "cd_remessa", label: "Remessa" },
+    { key: "patient_name", label: "Paciente", render: patientName },
+    { key: "encounter_id", label: "Atendimento" },
+    { key: "account_id", label: "Conta" },
+    { key: "encounter_date", label: "Data", render: shortDate },
+    { key: "billing_batch_id", label: "Remessa" },
     { key: "status_financeiro", label: "Status", render: (v) => <StatusBadge value={v} /> },
     { key: "vl_faturado", label: "Faturado", render: brl, className: "number" },
     { key: "vl_recebido_base", label: "Recebido base", render: brl, className: "number" },
@@ -758,11 +758,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     { key: "vl_saldo_estimado", label: "Saldo", render: brl, className: "number" },
     { key: "ultimo_recebimento", label: "Último receb.", render: shortDate },
     { key: "vl_glosa_liquida", label: "Glosa", render: brl, className: "number" },
-    ...(capabilities.custo_medicamento ? [{ key: "vl_custo_medicamento", label: "Custo medicamento*", render: brl, className: "number" }] : []),
+    ...(capabilities.custo_medicamento ? [{ key: "medication_cost_amount", label: "Custo medicamento*", render: brl, className: "number" }] : []),
   ];
 
   const pacCols = [
-    { key: "nm_paciente", label: "Paciente", render: patientName },
+    { key: "patient_name", label: "Paciente", render: patientName },
     { key: "qt_atendimentos", label: "Atend.", render: int, className: "number" },
     { key: "qt_contas", label: "Contas", render: int, className: "number" },
     { key: "vl_faturado", label: "Faturado", render: brl, className: "number" },
@@ -772,12 +772,12 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     { key: "vl_glosa_liquida", label: "Glosa", render: brl, className: "number" },
     { key: "vl_medio_por_atendimento", label: "Faturado/atend.", render: brl, className: "number" },
     { key: "vl_recebido_medio_atendimento", label: "Recebido/atend.", render: brl, className: "number" },
-    ...(capabilities.custo_medicamento ? [{ key: "vl_custo_medicamento", label: "Custo medicamento*", render: brl, className: "number" }] : []),
+    ...(capabilities.custo_medicamento ? [{ key: "medication_cost_amount", label: "Custo medicamento*", render: brl, className: "number" }] : []),
   ];
 
   const eventCols = [
-    { key: "cd_reccon_rec", label: "Evento" },
-    { key: "dt_recebimento", label: "Recebimento", render: shortDate },
+    { key: "receipt_event_id", label: "Evento" },
+    { key: "receipt_date", label: "Recebimento", render: shortDate },
     { key: "qt_remessas_onco", label: "Remessas", render: int, className: "number" },
     { key: "qt_contas_onco", label: "Contas", render: int, className: "number" },
     { key: "qt_pacientes_onco", label: "Pacientes", render: int, className: "number" },
@@ -788,11 +788,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   ];
 
   const paymentAccountCols = [
-    { key: "nm_paciente", label: "Paciente", render: patientName },
-    { key: "cd_atendimento", label: "Atendimento" },
-    { key: "cd_reg_amb", label: "Conta" },
-    { key: "cd_remessa", label: "Remessa" },
-    { key: "dt_competencia", label: "Competência", render: (v) => monthLabel(String(v || "").slice(0, 7)) },
+    { key: "patient_name", label: "Paciente", render: patientName },
+    { key: "encounter_id", label: "Atendimento" },
+    { key: "account_id", label: "Conta" },
+    { key: "billing_batch_id", label: "Remessa" },
+    { key: "competence_date", label: "Competência", render: (v) => monthLabel(String(v || "").slice(0, 7)) },
     { key: "ultimo_recebimento_no_periodo", label: "Recebido em", render: shortDate },
     { key: "vl_faturado", label: "Faturado", render: brl, className: "number" },
     { key: "vl_recebido_financeiro_periodo", label: "Receb. no período", render: brl, className: "number" },
@@ -805,12 +805,12 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   ];
 
   const eventItemCols = [
-    { key: "nm_paciente", label: "Paciente", render: patientName },
-    { key: "cd_atendimento", label: "Atendimento" },
-    { key: "cd_reg_amb", label: "Conta" },
-    { key: "cd_remessa", label: "Remessa" },
-    { key: "cd_itfat_nf", label: "Item NF" },
-    { key: "dt_competencia", label: "Competência", render: (v) => monthLabel(String(v || "").slice(0, 7)) },
+    { key: "patient_name", label: "Paciente", render: patientName },
+    { key: "encounter_id", label: "Atendimento" },
+    { key: "account_id", label: "Conta" },
+    { key: "billing_batch_id", label: "Remessa" },
+    { key: "invoice_item_id", label: "Item NF" },
+    { key: "competence_date", label: "Competência", render: (v) => monthLabel(String(v || "").slice(0, 7)) },
     { key: "vl_faturado", label: "Faturado item", render: brl, className: "number" },
     { key: "vl_recebido_financeiro", label: "Recebido", render: brl, className: "number" },
     { key: "vl_acrescimo", label: "Acréscimo", render: brl, className: "number" },
@@ -818,7 +818,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   ];
 
   const producaoValor = Number(integrado.producao?.valor_contas || 0);
-  const faturadoMvValor = Number(integrado.faturamento_mv?.valor || 0);
+  const faturadoCompetenciaValor = Number(integrado.faturamento_competencia?.valor || 0);
   const recebidoBaseValor = Number(integrado.recebimentos?.recebido_base || 0);
   const glosaRecebimentoValor = Number(integrado.recebimentos?.glosa_no_recebimento || 0);
   const saldoFinanceiroValor = Number(integrado.pendencias_recebimentos?.saldo_financeiro_aberto || 0);
@@ -830,8 +830,8 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     if (producaoValor > 0) parts.push(`A oncologia produziu ${brl(producaoValor)} no período selecionado.`);
     else parts.push("Não houve produção oncológica identificada no período selecionado.");
 
-    if (faturadoMvValor > 0) parts.push(`A competência MV somou ${brl(faturadoMvValor)} em faturamento oficial.`);
-    else parts.push("Ainda não há faturamento MV fechado na competência selecionada.");
+    if (faturadoCompetenciaValor > 0) parts.push(`A competência somou ${brl(faturadoCompetenciaValor)} em faturamento oficial.`);
+    else parts.push("Ainda não há faturamento por competência fechado na competência selecionada.");
 
     if (recebidoBaseValor > 0) parts.push(`O financeiro registrou ${brl(recebidoBaseValor)} em recebimentos no intervalo.`);
     else parts.push("Não houve recebimentos financeiros registrados no intervalo.");
@@ -856,10 +856,10 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
           </div>
         </div>
         <div className="user-toolbar">
-          <label>Convênio<select value={convenio?.cd_convenio || ""} onChange={(e)=>onConvenioChange?.(e.target.value)}>{convenios.map(c=><option key={c.cd_convenio} value={c.cd_convenio}>{c.nm_convenio} · {c.cd_convenio}{c.modelo_homologado?"":" · não homologado"}</option>)}</select></label>
+          <label>Convênio<select value={convenio?.payer_id || ""} onChange={(e)=>onConvenioChange?.(e.target.value)}>{convenios.map(c=><option key={c.payer_id} value={c.payer_id}>{c.payer_name} · {c.payer_id}{c.modelo_homologado?"":" · não homologado"}</option>)}</select></label>
           <div className="user-chip"><strong>{session?.user?.display_name}</strong><span>{String(session?.user?.role || "").replaceAll("_"," ")}</span></div>
           <button className="logout-button" type="button" onClick={onLogout}>Sair</button>
-          <div className="topbar-status"><span className="dot" /> Oracle read-only</div>
+          <div className="topbar-status"><span className="dot" /> fonte operacional read-only</div>
         </div>
       </header>
 
@@ -885,9 +885,9 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
         {!convenioSupported && (
           <div className="convenio-gate">
             <span className="gate-kicker">ESTRUTURA MULTI-CONVÊNIO ATIVA</span>
-            <h2>{convenio?.nm_convenio || "Convênio selecionado"}</h2>
-            <p>Seu usuário possui acesso a este convênio, mas as regras de oncologia, faturamento e recebimento ainda precisam ser homologadas antes de exibir indicadores. Isso evita reutilizar regras do CONVENIO_DEMO em outro contrato.</p>
-            <strong>Modelo validado atualmente: CONVENIO_DEMO · código 11.</strong>
+            <h2>{convenio?.payer_name || "Convênio selecionado"}</h2>
+            <p>Seu usuário possui acesso a este convênio, mas as regras de oncologia, faturamento e recebimento ainda precisam ser homologadas antes de exibir indicadores. Isso evita reutilizar regras do Convênio Demo em outro contrato.</p>
+            <strong>Modelo validado atualmente: Convênio Demo · código sintético 100.</strong>
           </div>
         )}
 
@@ -912,7 +912,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
               <SubTabs
                 value={analisesView}
                 onChange={(v) => { setAnalisesView(v); setSearch(""); }}
-                items={role === "VISUALIZACAO" ? [["faturamentoMv", "Faturamento MV"], ["producao", "Produção"]] : [["faturamentoMv", "Faturamento MV"], ["producao", "Produção"], ["produtos", "Produtos"]]}
+                items={role === "VISUALIZACAO" ? [["faturamentoCompetencia", "Faturamento por competência"], ["producao", "Produção"]] : [["faturamentoCompetencia", "Faturamento por competência"], ["producao", "Produção"], ["produtos", "Produtos"]]}
               />
             )}
 
@@ -925,8 +925,8 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                     <p>Uma leitura única para gestão, sem misturar as datas de produção, competência e recebimento.</p>
                   </div>
                   <div className="summary-validation">
-                    <strong>Faturamento MV conciliado</strong>
-                    <span>Regra conferida com o relatório nativo · setor 113</span>
+                    <strong>Faturamento por competência conciliado</strong>
+                    <span>Regra conferida com o relatório operacional · setor sintético 10</span>
                   </div>
                 </div>
 
@@ -957,13 +957,13 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                       />
                       <JourneyStep
                         step="2"
-                        title="Faturamento MV"
-                        value={brl(faturadoMvValor)}
-                        state={faturadoMvValor > 0 ? null : "Nenhum faturamento fechado"}
-                        detail={faturadoMvValor > 0 ? `${int(integrado.faturamento_mv?.qt_contas)} contas · faturamento oficial` : "Nenhum valor identificado na competência selecionada"}
-                        dateLabel="Por competência MV"
-                        tone={faturadoMvValor > 0 ? "billing" : "empty"}
-                        onClick={() => { setTab("analises"); setAnalisesView("faturamentoMv"); }}
+                        title="Faturamento por competência"
+                        value={brl(faturadoCompetenciaValor)}
+                        state={faturadoCompetenciaValor > 0 ? null : "Nenhum faturamento fechado"}
+                        detail={faturadoCompetenciaValor > 0 ? `${int(integrado.faturamento_competencia?.qt_contas)} contas · faturamento oficial` : "Nenhum valor identificado na competência selecionada"}
+                        dateLabel="Por competência"
+                        tone={faturadoCompetenciaValor > 0 ? "billing" : "empty"}
+                        onClick={() => { setTab("analises"); setAnalisesView("faturamentoCompetencia"); }}
                       />
                       <JourneyStep
                         step="3"
@@ -999,11 +999,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
                     <details className="method-details">
                       <summary>Como estes números são calculados?</summary>
-                      <p className="method-intro">Cada etapa respeita a data correta do MV. Por isso, produção, faturamento e recebimento do mesmo intervalo não devem ser subtraídos diretamente.</p>
+                      <p className="method-intro">Cada etapa respeita a data correta do sistema operacional. Por isso, produção, faturamento e recebimento do mesmo intervalo não devem ser subtraídos diretamente.</p>
                       <div className="scope-grid compact">
-                        <ScopeCard title="Produção" field="ITREG_AMB.DT_PRODUCAO">O que a oncologia realizou no período.</ScopeCard>
-                        <ScopeCard title="Faturamento MV" field="FATURA.DT_COMPETENCIA">O que entrou no faturamento oficial por competência.</ScopeCard>
-                        <ScopeCard title="Recebimentos" field="RECCON_REC.DT_RECEBIMENTO">O que o financeiro registrou como recebido; pode vir de competências anteriores.</ScopeCard>
+                        <ScopeCard title="Produção" field="production_date">O que a oncologia realizou no período.</ScopeCard>
+                        <ScopeCard title="Faturamento por competência" field="competence_date">O que entrou no faturamento oficial por competência.</ScopeCard>
+                        <ScopeCard title="Recebimentos" field="receipt_date">O que o financeiro registrou como recebido; pode vir de competências anteriores.</ScopeCard>
                       </div>
                       <div className="precision-banner"><strong>Importante:</strong> use a origem dos recebimentos para saber de quais competências veio o dinheiro. O painel mantém as métricas integradas na leitura, mas não mistura suas bases temporais.</div>
                     </details>
@@ -1032,7 +1032,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                         <button type="button" onClick={() => { setTab("contas"); setContasView("atendimentos"); }}><strong>Contas e pacientes</strong><span>Quem gerou os valores e qual é a situação de cada conta.</span></button>
                         <button type="button" onClick={() => setTab("recebimentos")}><strong>Recebimentos</strong><span>Eventos financeiros, competência de origem, aging e composição.</span></button>
                         <button type="button" onClick={() => { setTab("pendencias"); setPendenciasView("auditoria"); }}><strong>Glosas e pendências</strong><span>O que exige conferência ou ação da equipe.</span></button>
-                        <button type="button" onClick={() => { setTab("analises"); setAnalisesView("faturamentoMv"); }}><strong>Análises</strong><span>Faturamento MV, produção e produtos com metodologia explícita.</span></button>
+                        <button type="button" onClick={() => { setTab("analises"); setAnalisesView("faturamentoCompetencia"); }}><strong>Análises</strong><span>Faturamento por competência, produção e produtos com metodologia explícita.</span></button>
                       </div>
                     </Section>
                   </>
@@ -1042,7 +1042,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
             {tab === "analises" && analisesView === "producao" && (
               <>
-                <ScopeNote><strong>Período desta visão:</strong> coorte de produção oncológica CONVENIO_DEMO por <strong>ITREG_AMB.DT_PRODUCAO</strong>. Não confundir com faturamento por competência; para conciliar com o relatório nativo, use <strong>Análises → Faturamento MV</strong>.</ScopeNote>
+                <ScopeNote><strong>Período desta visão:</strong> coorte de produção oncológica Convênio Demo por <strong>production_date</strong>. Não confundir com faturamento por competência; para conciliar com o relatório operacional, use <strong>Análises → Faturamento por competência</strong>.</ScopeNote>
                 <div className="funnel-strip">
                   <div><span>Valor das contas</span><strong>{brl(financeiro.vl_faturado)}</strong><small>coorte de produção</small></div>
                   <i>→</i>
@@ -1063,7 +1063,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                 </div>
 
                 <div className="precision-banner">
-                  <strong>Precisão:</strong> esta visão mede a coorte de produção. O faturamento contábil por competência está em <strong>Análises → Faturamento MV</strong>; os recebimentos reais ficam em <strong>Recebimentos</strong>.
+                  <strong>Precisão:</strong> esta visão mede a coorte de produção. O faturamento contábil por competência está em <strong>Análises → Faturamento por competência</strong>; os recebimentos reais ficam em <strong>Recebimentos</strong>.
                 </div>
 
                 <Section title="Indicadores do período" subtitle={financeiro.semantica_periodo}>
@@ -1075,7 +1075,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                   </div>
                 </Section>
 
-                <Section title="Evolução da coorte de produção" subtitle="Agrupamento pela data de lançamento da conta da coorte selecionada. Não equivale a FATURA.DT_COMPETENCIA e não representa mês de recebimento.">
+                <Section title="Evolução da coorte de produção" subtitle="Agrupamento pela data de lançamento da conta da coorte selecionada. Não equivale a competence_date e não representa mês de recebimento.">
                   {loading.mensal ? <div className="empty-state">Carregando gráfico…</div> : mensal.length ? (
                     <div className="chart-wrap">
                       <ResponsiveContainer width="100%" height="100%">
@@ -1112,39 +1112,39 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
               </>
             )}
 
-            {tab === "analises" && analisesView === "faturamentoMv" && (
+            {tab === "analises" && analisesView === "faturamentoCompetencia" && (
               <>
-                <ScopeNote><strong>Período desta aba:</strong> <strong>FATURA.DT_COMPETENCIA</strong>. Esta é a visão indicada para conciliar o painel com o relatório nativo enviado. Para competência mensal, selecione um intervalo que inclua a data de competência gravada na fatura (normalmente o início do mês).</ScopeNote>
+                <ScopeNote><strong>Período desta aba:</strong> <strong>competence_date</strong>. Esta é a visão indicada para conciliar o painel com o relatório operacional enviado. Para competência mensal, selecione um intervalo que inclua a data de competência gravada na fatura (normalmente o início do mês).</ScopeNote>
 
                 <Section
-                  title="Faturamento por competência MV"
-                  subtitle="Regra estrutural do relatório nativo: empresa 1, CONVENIO_DEMO 11, remessa fechada, conta/item fechado, não pacote, não diagnóstico e pagamento não cancelado; soma item a item."
+                  title="Faturamento por competência"
+                  subtitle="Regra estrutural do relatório operacional: contrato sintético, remessa fechada, conta/item fechado, não pacote, não diagnóstico e pagamento não cancelado; soma item a item."
                   actions={
                     <div className="action-row">
                       <input
                         className="search"
-                        placeholder="Setores do relatório: ex. 113"
-                        value={setoresMv}
+                        placeholder="Setores do relatório: ex. 10"
+                        value={setoresCompetencia}
                         onChange={(e) => setSetoresMv(e.target.value)}
                         aria-label="Códigos de setor do relatório MV"
                       />
-                      <button className="secondary-button" type="button" onClick={loadFaturamentoMv}>Aplicar setores</button>
+                      <button className="secondary-button" type="button" onClick={loadFaturamentoCompetencia}>Aplicar setores</button>
                     </div>
                   }
                 >
                   <div className="precision-banner pending">
-                    <strong>Conciliação 1:1:</strong> informe os mesmos códigos de setor usados no relatório nativo. O painel não adiciona filtro por AGENDAMENTO_ONCOLOGICO nesta aba, porque ele não existe na SQL nativa enviada. O setor 113 (ONCOLOGIA) vem preenchido por padrão. O placeholder <code>V_VAR</code> ainda não foi reproduzido porque sua regra não foi fornecida; nenhum SQL livre é aceito pelo painel.
+                    <strong>Conciliação 1:1:</strong> informe os mesmos códigos de setor usados no relatório operacional. O painel não adiciona filtro por OncologySchedule nesta aba, porque ele não existe na regra operacional privada. O setor sintético 10 vem preenchido por padrão. O placeholder <code>V_VAR</code> ainda não foi reproduzido porque sua regra não foi fornecida; nenhum SQL livre é aceito pelo painel.
                   </div>
 
-                  {loading.faturamentoMv ? <div className="loading-panel">Calculando faturamento por competência MV…</div> : (
+                  {loading.faturamentoCompetencia ? <div className="loading-panel">Calculando faturamento por competência…</div> : (
                     <>
                       <div className="metrics-grid">
-                        <Card title="Faturamento competência MV" value={brl(fatMvResumo.vl_faturamento_competencia)} subtitle={`${int(fatMvResumo.qt_itens)} itens`} />
-                        <Card title="Ambulatorial" value={brl(fatMvResumo.vl_ambulatorial)} subtitle={`${int(fatMvResumo.qt_itens_ambulatorial)} itens`} />
-                        <Card title="Hospitalar" value={brl(fatMvResumo.vl_hospitalar)} subtitle={`${int(fatMvResumo.qt_itens_hospitalar)} itens`} />
-                        <Card title="Contas" value={int(fatMvResumo.qt_contas)} subtitle={`${int(fatMvResumo.qt_atendimentos)} atendimentos`} />
-                        <Card title="Remessas" value={int(fatMvResumo.qt_remessas)} />
-                        <Card title="Setores" value={int(fatMvResumo.qt_setores)} subtitle={fatMvResumo.setores_aplicados?.length ? `Filtro: ${fatMvResumo.setores_aplicados.join(", ")}` : "Todos os setores CONVENIO_DEMO"} />
+                        <Card title="Faturamento competência" value={brl(fatCompetenciaResumo.vl_faturamento_competencia)} subtitle={`${int(fatCompetenciaResumo.qt_itens)} itens`} />
+                        <Card title="Ambulatorial" value={brl(fatCompetenciaResumo.vl_ambulatorial)} subtitle={`${int(fatCompetenciaResumo.qt_itens_ambulatorial)} itens`} />
+                        <Card title="Hospitalar" value={brl(fatCompetenciaResumo.vl_hospitalar)} subtitle={`${int(fatCompetenciaResumo.qt_itens_hospitalar)} itens`} />
+                        <Card title="Contas" value={int(fatCompetenciaResumo.qt_contas)} subtitle={`${int(fatCompetenciaResumo.qt_atendimentos)} atendimentos`} />
+                        <Card title="Remessas" value={int(fatCompetenciaResumo.qt_remessas)} />
+                        <Card title="Setores" value={int(fatCompetenciaResumo.qt_setores)} subtitle={fatCompetenciaResumo.setores_aplicados?.length ? `Filtro: ${fatCompetenciaResumo.setores_aplicados.join(", ")}` : "Todos os setores Convênio Demo"} />
                       </div>
 
                       <div className="inline-note">
@@ -1154,11 +1154,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                   )}
                 </Section>
 
-                <Section title="Evolução por competência MV" subtitle="Agrupamento mensal por FATURA.DT_COMPETENCIA.">
-                  {loading.faturamentoMv ? <div className="empty-state">Consultando competências…</div> : fatMvMensal.length ? (
+                <Section title="Evolução por competência" subtitle="Agrupamento mensal por competence_date.">
+                  {loading.faturamentoCompetencia ? <div className="empty-state">Consultando competências…</div> : fatCompetenciaMensal.length ? (
                     <div className="chart-wrap">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={fatMvMensal}>
+                        <LineChart data={fatCompetenciaMensal}>
                           <CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="competencia" /><YAxis width={88} />
                           <Tooltip formatter={(v) => brl(v)} /><Legend />
                           <Line type="monotone" dataKey="vl_faturamento_competencia" name="Total MV" strokeWidth={2} />
@@ -1172,17 +1172,17 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
                 <Section
                   title="Composição por setor"
-                  subtitle="Use esta tabela para conferir exatamente quais setores formam o total e alinhar com a seleção do relatório nativo."
-                  actions={<a className="secondary-link" href={api.faturamentoMvCsvUrl(fInicio, fFim, setoresMv.trim())}>Exportar CSV</a>}
+                  subtitle="Use esta tabela para conferir exatamente quais setores formam o total e alinhar com a seleção do relatório operacional."
+                  actions={<a className="secondary-link" href={api.faturamentoCompetenciaCsvUrl(fInicio, fFim, setoresCompetencia.trim())}>Exportar CSV</a>}
                 >
-                  {loading.faturamentoMv ? <div className="empty-state">Consultando setores…</div> : (
+                  {loading.faturamentoCompetencia ? <div className="empty-state">Consultando setores…</div> : (
                     <DataTable
-                      keyField="cd_setor"
-                      rows={fatMvSetores}
+                      keyField="sector_id"
+                      rows={fatCompetenciaSetores}
                       columns={[
-                        { key: "cd_setor", label: "Cód. setor" },
-                        { key: "nm_setor", label: "Setor" },
-                        { key: "vl_faturamento_competencia", label: "Faturamento MV", render: brl, className: "number" },
+                        { key: "sector_id", label: "Cód. setor" },
+                        { key: "sector_name", label: "Setor" },
+                        { key: "vl_faturamento_competencia", label: "Faturamento por competência", render: brl, className: "number" },
                         { key: "vl_ambulatorial", label: "Ambulatorial", render: brl, className: "number" },
                         { key: "vl_hospitalar", label: "Hospitalar", render: brl, className: "number" },
                         { key: "qt_itens", label: "Itens", render: int, className: "number" },
@@ -1197,7 +1197,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
             {tab === "recebimentos" && (
               <>
-                <ScopeNote><strong>Período desta aba:</strong> <strong>Data de recebimento registrada no financeiro</strong> (`RECCON_REC.DT_RECEBIMENTO`). Não é inferida como data bancária.</ScopeNote>
+                <ScopeNote><strong>Período desta aba:</strong> <strong>Data de recebimento registrada no financeiro</strong> (`receipt_date`). Não é inferida como data bancária.</ScopeNote>
                 {loading.paymentsCore ? <div className="loading-panel">Conciliando recebimentos do período…</div> : (
                   <>
                     <div className="metrics-grid payments-grid">
@@ -1327,22 +1327,22 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
                     <Section
                       title="Eventos de recebimento"
-                      subtitle="Cada linha é um CD_RECCON_REC. Clique em um evento para abrir os itens, contas, pacientes e remessas que o compõem."
+                      subtitle="Cada linha é um CD_ReceiptEvent. Clique em um evento para abrir os itens, contas, pacientes e remessas que o compõem."
                       actions={<button className="secondary-button" type="button" onClick={() => runLazy("pagEventos", () => api.pagamentosEventos(fInicio, fFim, 500), setPagEventos)}>Carregar eventos</button>}
                     >
                       {loading.pagEventos ? <div className="empty-state">Consultando eventos…</div> : pagEventos.length ? (
-                        <DataTable columns={eventCols} rows={pagEventos} keyField="cd_reccon_rec" onRowClick={abrirEvento} />
+                        <DataTable columns={eventCols} rows={pagEventos} keyField="receipt_event_id" onRowClick={abrirEvento} />
                       ) : <div className="empty-state">Carregue os eventos somente quando precisar do drill-down.</div>}
                     </Section>
 
                     {selectedEvent && (
                       <Section
-                        title={`Evento ${selectedEvent.cd_reccon_rec}`}
-                        subtitle={`${shortDate(selectedEvent.dt_recebimento)} · parcela oncológica ${brl(selectedEvent.vl_onco_recebido)} de um evento total de ${brl(selectedEvent.vl_evento_total)}`}
+                        title={`Evento ${selectedEvent.receipt_event_id}`}
+                        subtitle={`${shortDate(selectedEvent.receipt_date)} · parcela oncológica ${brl(selectedEvent.vl_onco_recebido)} de um evento total de ${brl(selectedEvent.vl_evento_total)}`}
                         actions={<button className="secondary-button" type="button" onClick={() => { setSelectedEvent(null); setEventItems([]); }}>Fechar detalhe</button>}
                       >
                         {loading.eventItems ? <div className="empty-state">Abrindo composição do evento…</div> : (
-                          <DataTable columns={eventItemCols} rows={eventItems} keyField="cd_itfat_nf" />
+                          <DataTable columns={eventItemCols} rows={eventItems} keyField="invoice_item_id" />
                         )}
                       </Section>
                     )}
@@ -1353,7 +1353,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                       actions={<div className="action-row"><input className="search" placeholder="Paciente, atendimento, conta ou remessa" value={search} onChange={(e) => setSearch(e.target.value)} /><button className="secondary-button" type="button" onClick={() => runLazy("pagContas", () => api.pagamentosContas(fInicio, fFim, 500), setPagContas)}>Carregar contas</button></div>}
                     >
                       {loading.pagContas ? <div className="empty-state">Consultando contas…</div> : pagContas.length ? (
-                        <DataTable columns={paymentAccountCols} rows={filterRows(pagContas, ["nm_paciente", "cd_atendimento", "cd_reg_amb", "cd_remessa", "status_recebimento"])} keyField="cd_reg_amb" onRowClick={abrirConta} />
+                        <DataTable columns={paymentAccountCols} rows={filterRows(pagContas, ["patient_name", "encounter_id", "account_id", "billing_batch_id", "status_recebimento"])} keyField="account_id" onRowClick={abrirConta} />
                       ) : <div className="empty-state">Carregue as contas para investigar a composição individual.</div>}
                     </Section>
                   </>
@@ -1371,7 +1371,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                 >
                   {capabilities.custo_medicamento && <div className="inline-note">* Custo medicamento vem de FA_CUSTO_ATENDIMENTO e não representa o custo hospitalar total.</div>}
                   {loading.atendimentos ? <div className="empty-state">Consultando atendimentos…</div> : (
-                    <DataTable columns={atendCols} rows={filterRows(atendimentos, ["nm_paciente", "cd_paciente", "cd_atendimento", "cd_reg_amb", "cd_remessa", "status_financeiro"])} keyField="cd_reg_amb" onRowClick={abrirConta} />
+                    <DataTable columns={atendCols} rows={filterRows(atendimentos, ["patient_name", "patient_id", "encounter_id", "account_id", "billing_batch_id", "status_financeiro"])} keyField="account_id" onRowClick={abrirConta} />
                   )}
                 </Section>
               </>
@@ -1387,7 +1387,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                 >
                   {capabilities.custo_medicamento && <div className="inline-note">* Custo medicamento é uma dimensão parcial de custo. Não representa custo hospitalar total.</div>}
                   {loading.pacientes ? <div className="empty-state">Consultando pacientes…</div> : (
-                    <DataTable columns={pacCols} rows={filterRows(pacientes, ["nm_paciente", "cd_paciente"])} keyField="cd_paciente" onRowClick={abrirPaciente} />
+                    <DataTable columns={pacCols} rows={filterRows(pacientes, ["patient_name", "patient_id"])} keyField="patient_id" onRowClick={abrirPaciente} />
                   )}
                 </Section>
               </>
@@ -1413,15 +1413,15 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                 >
                   {loading.audDetalhe ? <div className="empty-state">Executando auditoria…</div> : audDetalhe.length ? (
                     <DataTable
-                      keyField="cd_reg_amb"
+                      keyField="account_id"
                       rows={audDetalhe}
                       columns={[
                         { key: "tipo", label: "Regra", render: (v) => <StatusBadge value={v} /> },
-                        { key: "nm_paciente", label: "Paciente", render: patientName },
-                        { key: "cd_atendimento", label: "Atendimento" },
-                        { key: "cd_reg_amb", label: "Conta" },
-                        { key: "cd_remessa", label: "Remessa" },
-                        { key: "sn_paga", label: "SN_PAGA" },
+                        { key: "patient_name", label: "Paciente", render: patientName },
+                        { key: "encounter_id", label: "Atendimento" },
+                        { key: "account_id", label: "Conta" },
+                        { key: "billing_batch_id", label: "Remessa" },
+                        { key: "batch_paid_flag", label: "batch_paid_flag" },
                         { key: "qt_eventos_recebimento", label: "Eventos", render: int, className: "number" },
                         { key: "vl_faturado", label: "Faturado", render: brl, className: "number" },
                         { key: "vl_recebido_base", label: "Recebido base", render: brl, className: "number" },
@@ -1435,7 +1435,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
                 <Section
                   title="Auditoria dos recebimentos"
-                  subtitle="Aqui o período é financeiro: RECCON_REC.DT_RECEBIMENTO. Audita apenas as contas que tiveram recebimento no intervalo."
+                  subtitle="Aqui o período é financeiro: receipt_date. Audita apenas as contas que tiveram recebimento no intervalo."
                   actions={<div className="action-row"><button className="secondary-button" type="button" onClick={() => runLazy("audRecResumo", () => api.auditoriaRecebimentosResumo(fInicio, fFim), setAudRecResumo)}>Carregar resumo</button><button className="secondary-button" type="button" onClick={() => runLazy("audRecDetalhe", () => api.auditoriaRecebimentosDetalhe(fInicio, fFim, 500), setAudRecDetalhe)}>Carregar pendências</button></div>}
                 >
                   {loading.audRecResumo ? <div className="empty-state">Auditando recebimentos…</div> : audRecResumo.qt_contas != null ? (
@@ -1450,7 +1450,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                   ) : <div className="empty-state">Carregue o resumo para auditar o período de recebimento.</div>}
                   {loading.audRecDetalhe ? <div className="empty-state">Carregando pendências dos recebimentos…</div> : audRecDetalhe.length ? (
                     <DataTable
-                      keyField="cd_reg_amb"
+                      keyField="account_id"
                       rows={audRecDetalhe}
                       columns={paymentAccountCols}
                     />
@@ -1567,7 +1567,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                       <ResponsiveContainer width="100%" height="100%">
                         <BarChart data={motivos} layout="vertical" margin={{ left: 12, right: 20 }}>
                           <CartesianGrid strokeDasharray="3 3" /><XAxis type="number" />
-                          <YAxis dataKey="ds_motivo_glosa" type="category" width={250} tick={{ fontSize: 11 }} />
+                          <YAxis dataKey="adjustment_reason_description" type="category" width={250} tick={{ fontSize: 11 }} />
                           <Tooltip formatter={(v) => brl(v)} /><Bar dataKey="vl_glosa" name="Valor glosado" />
                         </BarChart>
                       </ResponsiveContainer>
@@ -1580,11 +1580,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                       keyField="cd_glosas"
                       rows={glosas}
                       columns={[
-                        { key: "dt_glosa", label: "Data", render: shortDate },
-                        { key: "cd_reg_amb", label: "Conta" },
-                        { key: "cd_atendimento", label: "Atendimento" },
-                        { key: "ds_pro_fat", label: "Procedimento" },
-                        { key: "ds_motivo_glosa", label: "Motivo" },
+                        { key: "adjustment_date", label: "Data", render: shortDate },
+                        { key: "account_id", label: "Conta" },
+                        { key: "encounter_id", label: "Atendimento" },
+                        { key: "billing_item_description", label: "Procedimento" },
+                        { key: "adjustment_reason_description", label: "Motivo" },
                         { key: "vl_glosa", label: "Valor", render: brl, className: "number" },
                         { key: "status_analitico", label: "Status", render: (v) => <StatusBadge value={v} /> },
                       ]}
@@ -1595,15 +1595,15 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
             )}
 
             {tab === "analises" && analisesView === "produtos" && (
-              <Section title="Produtos" subtitle="Participação do uso oncológico CONVENIO_DEMO no total observado para o produto dentro do período.">
+              <Section title="Produtos" subtitle="Participação do uso oncológico Convênio Demo no total observado para o produto dentro do período.">
                 {loading.produtos ? <div className="empty-state">Consultando produtos…</div> : (
                   <DataTable
-                    keyField="cd_produto"
+                    keyField="product_id"
                     rows={produtos}
                     columns={[
-                      { key: "cd_produto", label: "Código" },
-                      { key: "ds_produto", label: "Produto" },
-                      { key: "sn_medicamento", label: "Medicamento" },
+                      { key: "product_id", label: "Código" },
+                      { key: "product_description", label: "Produto" },
+                      { key: "is_medication", label: "Medicamento" },
                       { key: "mov_onco", label: "Mov. onco", render: int, className: "number" },
                       { key: "mov_total", label: "Mov. total", render: int, className: "number" },
                       { key: "pct_onco", label: "% onco", render: pct, className: "number" },
@@ -1629,9 +1629,9 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                     <a className="primary-link" href={api.pdfUrl(fInicio, fFim, true)} target="_blank" rel="noreferrer">Gerar PDF detalhado</a>
                   </div>
                   <div className="report-card">
-                    <div><span className="report-kicker">EXCEL / CSV</span><h3>Faturamento MV</h3></div>
-                    <p>Faturamento por competência, item a item, agrupado por setor para conciliação com o relatório nativo.</p>
-                    <a className="secondary-link" href={api.faturamentoMvCsvUrl(fInicio, fFim, setoresMv.trim())}>Exportar faturamento MV</a>
+                    <div><span className="report-kicker">EXCEL / CSV</span><h3>Faturamento por competência</h3></div>
+                    <p>Faturamento por competência, item a item, agrupado por setor para conciliação com o relatório operacional.</p>
+                    <a className="secondary-link" href={api.faturamentoCompetenciaCsvUrl(fInicio, fFim, setoresCompetencia.trim())}>Exportar faturamento por competência</a>
                   </div>
                   <div className="report-card">
                     <div><span className="report-kicker">EXCEL / CSV</span><h3>Pagamentos</h3></div>
@@ -1669,21 +1669,21 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
 
       {selectedPatient && <div className="detail-overlay" role="dialog" aria-modal="true" aria-label="Detalhe do paciente">
         <div className="detail-drawer patient-drawer">
-          <div className="detail-head"><div><span className="detail-kicker">PACIENTE</span><h2>{privacy ? `Paciente ${selectedPatient.cd_paciente}` : (selectedPatient.nm_paciente || "Paciente")}</h2><p>Código {selectedPatient.cd_paciente} · contas do período de produção selecionado</p></div><button type="button" className="icon-close" onClick={()=>setSelectedPatient(null)}>×</button></div>
+          <div className="detail-head"><div><span className="detail-kicker">PACIENTE</span><h2>{privacy ? `Paciente ${selectedPatient.patient_id}` : (selectedPatient.patient_name || "Paciente")}</h2><p>Código {selectedPatient.patient_id} · contas do período de produção selecionado</p></div><button type="button" className="icon-close" onClick={()=>setSelectedPatient(null)}>×</button></div>
           <div className="detail-metrics"><Card title="Atendimentos" value={int(selectedPatient.qt_atendimentos)} /><Card title="Contas" value={int(selectedPatient.qt_contas)} /><Card title="Faturado" value={brl(selectedPatient.vl_faturado)} /><Card title="Recebido base" value={brl(selectedPatient.vl_recebido_base)} /></div>
-          <div className="detail-body"><h3>Contas e atendimentos</h3>{loading.patientAccounts ? <div className="empty-state">Consultando contas do paciente…</div> : <DataTable columns={atendCols} rows={patientAccounts} keyField="cd_reg_amb" onRowClick={(row)=>{setSelectedPatient(null);abrirConta(row);}} />}</div>
+          <div className="detail-body"><h3>Contas e atendimentos</h3>{loading.patientAccounts ? <div className="empty-state">Consultando contas do paciente…</div> : <DataTable columns={atendCols} rows={patientAccounts} keyField="account_id" onRowClick={(row)=>{setSelectedPatient(null);abrirConta(row);}} />}</div>
         </div>
       </div>}
 
       {(selectedAccount || loading.accountDetail) && <div className="detail-overlay" role="dialog" aria-modal="true" aria-label="Detalhe da conta">
         <div className="detail-drawer account-drawer">
-          <div className="detail-head"><div><span className="detail-kicker">CONTA ONCOLÓGICA</span><h2>Conta {selectedAccount?.cd_reg_amb || accountDetail?.conta?.cd_reg_amb}</h2><p>{accountDetail?.conta ? `${privacy ? `Paciente ${accountDetail.conta.cd_paciente}` : accountDetail.conta.nm_paciente} · Atendimento ${accountDetail.conta.cd_atendimento}` : "Carregando identificação da conta…"}</p></div><div className="detail-head-actions">{accountDetail?.conta?.cd_reg_amb && <a className="primary-link" href={api.contaPdfUrl(accountDetail.conta.cd_reg_amb)} target="_blank" rel="noreferrer">Imprimir / PDF</a>}<button type="button" className="icon-close" onClick={()=>{setSelectedAccount(null);setAccountDetail(null);}}>×</button></div></div>
+          <div className="detail-head"><div><span className="detail-kicker">CONTA ONCOLÓGICA</span><h2>Conta {selectedAccount?.account_id || accountDetail?.conta?.account_id}</h2><p>{accountDetail?.conta ? `${privacy ? `Paciente ${accountDetail.conta.patient_id}` : accountDetail.conta.patient_name} · Atendimento ${accountDetail.conta.encounter_id}` : "Carregando identificação da conta…"}</p></div><div className="detail-head-actions">{accountDetail?.conta?.account_id && <a className="primary-link" href={api.contaPdfUrl(accountDetail.conta.account_id)} target="_blank" rel="noreferrer">Imprimir / PDF</a>}<button type="button" className="icon-close" onClick={()=>{setSelectedAccount(null);setAccountDetail(null);}}>×</button></div></div>
           {loading.accountDetail ? <div className="loading-panel">Carregando conta e itens…</div> : accountDetail && <>
             <div className="detail-metrics"><Card title="Faturado" value={brl(accountDetail.conta.vl_faturado)} /><Card title="Recebido base" value={brl(accountDetail.conta.vl_recebido_base)} /><Card title="Saldo" value={brl(accountDetail.conta.vl_saldo_estimado)} /><Card title="Glosa líquida" value={brl(accountDetail.conta.vl_glosa_liquida)} tone={Number(accountDetail.conta.vl_glosa_liquida)>0?"danger":""} /></div>
-            <div className="account-meta"><div><span>Status</span><StatusBadge value={accountDetail.conta.status_financeiro}/></div><div><span>Remessa</span><strong>{accountDetail.conta.cd_remessa || "Sem remessa"}</strong></div><div><span>Último recebimento</span><strong>{shortDate(accountDetail.conta.ultimo_recebimento)}</strong></div><div><span>Itens</span><strong>{int(accountDetail.itens?.length)}</strong></div></div>
-            <div className="detail-body"><div className="detail-section-title"><div><span className="detail-kicker">COMPOSIÇÃO</span><h3>Itens da conta</h3></div><span className="source-chip">ITREG_AMB + PRO_FAT</span></div><DataTable columns={itemCols} rows={accountDetail.itens || []} keyField="cd_lancamento" empty="Nenhum item localizado para esta conta." />
-              {accountDetail.recebimentos?.length > 0 && <><h3>Recebimentos vinculados</h3><DataTable keyField="cd_reccon_rec" rows={accountDetail.recebimentos} columns={[{key:"cd_reccon_rec",label:"Evento"},{key:"dt_recebimento",label:"Data financeira",render:shortDate},{key:"vl_recebido_base",label:"Recebido base",render:brl,className:"number"},{key:"vl_acrescimo",label:"Acréscimo",render:brl,className:"number"},{key:"vl_glosa",label:"Glosa",render:brl,className:"number"}]} /></>}
-              {accountDetail.glosas?.length > 0 && <><h3>Glosas da conta</h3><DataTable keyField="cd_glosas" rows={accountDetail.glosas} columns={[{key:"dt_glosa",label:"Data",render:shortDate},{key:"ds_pro_fat",label:"Procedimento"},{key:"ds_motivo_glosa",label:"Motivo"},{key:"vl_glosa",label:"Valor",render:brl,className:"number"}]} /></>}
+            <div className="account-meta"><div><span>Status</span><StatusBadge value={accountDetail.conta.status_financeiro}/></div><div><span>Remessa</span><strong>{accountDetail.conta.billing_batch_id || "Sem remessa"}</strong></div><div><span>Último recebimento</span><strong>{shortDate(accountDetail.conta.ultimo_recebimento)}</strong></div><div><span>Itens</span><strong>{int(accountDetail.itens?.length)}</strong></div></div>
+            <div className="detail-body"><div className="detail-section-title"><div><span className="detail-kicker">COMPOSIÇÃO</span><h3>Itens da conta</h3></div><span className="source-chip">InvoiceItem + BillingItem</span></div><DataTable columns={itemCols} rows={accountDetail.itens || []} keyField="line_item_id" empty="Nenhum item localizado para esta conta." />
+              {accountDetail.recebimentos?.length > 0 && <><h3>Recebimentos vinculados</h3><DataTable keyField="receipt_event_id" rows={accountDetail.recebimentos} columns={[{key:"receipt_event_id",label:"Evento"},{key:"receipt_date",label:"Data financeira",render:shortDate},{key:"vl_recebido_base",label:"Recebido base",render:brl,className:"number"},{key:"vl_acrescimo",label:"Acréscimo",render:brl,className:"number"},{key:"vl_glosa",label:"Glosa",render:brl,className:"number"}]} /></>}
+              {accountDetail.glosas?.length > 0 && <><h3>Glosas da conta</h3><DataTable keyField="cd_glosas" rows={accountDetail.glosas} columns={[{key:"adjustment_date",label:"Data",render:shortDate},{key:"billing_item_description",label:"Procedimento"},{key:"adjustment_reason_description",label:"Motivo"},{key:"vl_glosa",label:"Valor",render:brl,className:"number"}]} /></>}
             </div>
           </>}
         </div>

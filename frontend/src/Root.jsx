@@ -70,8 +70,8 @@ export default function Root() {
     if (!session?.user) return;
     authApi.convenios().then((rows) => {
       setConvenios(rows || []);
-      const saved = Number(localStorage.getItem("oncology_convenio") || 11);
-      const selected = rows?.find((x)=>x.cd_convenio===saved) || rows?.find((x)=>x.cd_convenio===11) || rows?.[0] || null;
+      const saved = Number(localStorage.getItem("oncology_payer") || 100);
+      const selected = rows?.find((x)=>x.payer_id===saved) || rows?.find((x)=>x.payer_id===100) || rows?.[0] || null;
       setConvenio(selected);
     }).catch(()=>setConvenios([]));
   }, [session]);
@@ -82,8 +82,8 @@ export default function Root() {
   }
 
   function selectConvenio(cd) {
-    const item = convenios.find((x)=>String(x.cd_convenio)===String(cd));
-    if (item) { setConvenio(item); localStorage.setItem("oncology_convenio", String(item.cd_convenio)); }
+    const item = convenios.find((x)=>String(x.payer_id)===String(cd));
+    if (item) { setConvenio(item); localStorage.setItem("oncology_payer", String(item.payer_id)); }
   }
 
   if (checking) return <div className="boot-screen">Carregando acesso…</div>;

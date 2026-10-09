@@ -26,7 +26,7 @@ test("demo keeps billed, received and open balances distinct", () => {
 test("demo account drill-down is traceable", () => {
   const detail = demoResponse("/api/onco/contas/81002");
 
-  assert.equal(detail.conta.cd_reg_amb, 81002);
+  assert.equal(detail.conta.account_id, 81002);
   assert.ok(detail.itens.length > 0);
   assert.ok(detail.recebimentos.length > 0);
   assert.ok(detail.glosas.length > 0);

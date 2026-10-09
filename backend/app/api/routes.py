@@ -134,9 +134,9 @@ def pagamentos_aging(data_inicio: date, data_fim: date):
     return _guard(get_pagamentos_aging, data_inicio, data_fim)
 
 
-@router.get("/pagamentos/eventos/{cd_reccon_rec}/itens", dependencies=[Depends(require_operational)])
-def pagamento_itens(cd_reccon_rec: int, limit: int = Query(500, ge=1, le=1000)):
-    return _guard(get_pagamento_itens, cd_reccon_rec, limit)
+@router.get("/pagamentos/eventos/{receipt_event_id}/itens", dependencies=[Depends(require_operational)])
+def pagamento_itens(receipt_event_id: int, limit: int = Query(500, ge=1, le=1000)):
+    return _guard(get_pagamento_itens, receipt_event_id, limit)
 
 
 @router.get("/auditoria/resumo", dependencies=[Depends(require_operational)])
@@ -174,21 +174,21 @@ def remessas(data_inicio: date, data_fim: date, limit: int = Query(100, ge=1, le
     return _guard(get_remessas, data_inicio, data_fim, limit)
 
 
-@router.get("/pacientes/{cd_paciente}/contas", dependencies=[Depends(require_operational)])
-def paciente_contas(cd_paciente: int, data_inicio: date, data_fim: date):
-    return _guard(get_paciente_contas, data_inicio, data_fim, cd_paciente)
+@router.get("/pacientes/{patient_id}/contas", dependencies=[Depends(require_operational)])
+def paciente_contas(patient_id: int, data_inicio: date, data_fim: date):
+    return _guard(get_paciente_contas, data_inicio, data_fim, patient_id)
 
 
-@router.get("/contas/{cd_reg_amb}", dependencies=[Depends(require_operational)])
-def conta_detalhe(cd_reg_amb: int):
-    return _guard(get_conta_detalhe, cd_reg_amb)
+@router.get("/contas/{account_id}", dependencies=[Depends(require_operational)])
+def conta_detalhe(account_id: int):
+    return _guard(get_conta_detalhe, account_id)
 
 
-@router.get("/contas/{cd_reg_amb}/pdf", dependencies=[Depends(require_operational)])
-def conta_pdf(cd_reg_amb: int):
-    payload = _guard(get_conta_detalhe, cd_reg_amb)
+@router.get("/contas/{account_id}/pdf", dependencies=[Depends(require_operational)])
+def conta_pdf(account_id: int):
+    payload = _guard(get_conta_detalhe, account_id)
     pdf_bytes = build_account_pdf(payload)
-    filename = f"conta_oncologia_{cd_reg_amb}.pdf"
+    filename = f"conta_oncologia_{account_id}.pdf"
     return Response(content=pdf_bytes, media_type="application/pdf", headers={"Content-Disposition": f'inline; filename="{filename}"'})
 
 
@@ -209,7 +209,7 @@ def produtos(data_inicio: date, data_fim: date, limit: int = Query(100, ge=1, le
 
 @router.get("/export/pdf", dependencies=[Depends(require_operational)])
 def export_pdf(data_inicio: date, data_fim: date, detalhado: bool = Query(False)):
-    # Exportação explícita e sequencial para evitar pico de carga no Oracle.
+    # Exportação explícita e sequencial para evitar pico de carga na fonte operacional.
     resumo_data = _guard(get_resumo, data_inicio, data_fim)
     financeiro_data = _guard(get_financeiro, data_inicio, data_fim)
     mensal_data = _guard(get_financeiro_mensal, data_inicio, data_fim)
@@ -277,8 +277,8 @@ def export_xml(data_inicio: date, data_fim: date):
 def export_pagamentos_csv(data_inicio: date, data_fim: date):
     rows = _guard(get_pagamentos_contas, data_inicio, data_fim, 500)
     columns = [
-        ("nm_paciente", "Paciente"), ("cd_atendimento", "Atendimento"), ("cd_reg_amb", "Conta"),
-        ("cd_remessa", "Remessa"), ("dt_competencia", "Competencia"), ("dt_atendimento", "Data atendimento"),
+        ("patient_name", "Paciente"), ("encounter_id", "Atendimento"), ("account_id", "Conta"),
+        ("billing_batch_id", "Remessa"), ("competence_date", "Competencia"), ("encounter_date", "Data atendimento"),
         ("primeiro_recebimento_no_periodo", "Primeiro recebimento no periodo"),
         ("ultimo_recebimento_no_periodo", "Ultimo recebimento no periodo"),
         ("vl_faturado", "Valor faturado"), ("vl_recebido_financeiro_periodo", "Recebimento financeiro no periodo"),
@@ -300,14 +300,14 @@ def export_faturamento_competencia_csv(
 ):
     rows = _guard(get_faturamento_competencia_setores, data_inicio, data_fim, setores)
     columns = [
-        ("cd_setor", "Codigo setor"), ("nm_setor", "Setor"),
+        ("sector_id", "Codigo setor"), ("sector_name", "Setor"),
         ("vl_faturamento_competencia", "Faturamento competencia MV"),
         ("vl_ambulatorial", "Ambulatorial"), ("vl_hospitalar", "Hospitalar"),
         ("qt_itens", "Itens"), ("qt_contas", "Contas"),
         ("qt_atendimentos", "Atendimentos"), ("qt_remessas", "Remessas"),
     ]
     content = build_csv(rows, columns)
-    filename = f"faturamento_competencia_mv_{data_inicio}_{data_fim}.csv"
+    filename = f"faturamento_competencia_{data_inicio}_{data_fim}.csv"
     return Response(content=content, media_type="text/csv; charset=utf-8", headers={"Content-Disposition": f'attachment; filename="{filename}"'})
 
 
@@ -315,8 +315,8 @@ def export_faturamento_competencia_csv(
 def export_atendimentos_csv(data_inicio: date, data_fim: date):
     rows = _guard(get_atendimentos, data_inicio, data_fim, 500)
     columns = [
-        ("nm_paciente", "Paciente"), ("cd_atendimento", "Atendimento"), ("cd_reg_amb", "Conta"),
-        ("cd_remessa", "Remessa"), ("dt_atendimento", "Data atendimento"), ("vl_faturado", "Faturado"),
+        ("patient_name", "Paciente"), ("encounter_id", "Atendimento"), ("account_id", "Conta"),
+        ("billing_batch_id", "Remessa"), ("encounter_date", "Data atendimento"), ("vl_faturado", "Faturado"),
         ("vl_glosa_liquida", "Glosa liquida"), ("vl_recebido_base", "Recebido base acumulado"),
         ("vl_acrescimo_recebimento", "Acrescimos"), ("vl_saldo_estimado", "Saldo estimado"),
         ("status_financeiro", "Status financeiro"), ("primeiro_recebimento", "Primeiro recebimento"),
@@ -331,7 +331,7 @@ def export_atendimentos_csv(data_inicio: date, data_fim: date):
 def export_pacientes_csv(data_inicio: date, data_fim: date):
     rows = _guard(get_pacientes, data_inicio, data_fim, 500)
     columns = [
-        ("nm_paciente", "Paciente"), ("qt_atendimentos", "Atendimentos"), ("qt_contas", "Contas"),
+        ("patient_name", "Paciente"), ("qt_atendimentos", "Atendimentos"), ("qt_contas", "Contas"),
         ("qt_remessas", "Remessas"), ("vl_faturado", "Faturado"), ("vl_glosa_liquida", "Glosa liquida"),
         ("vl_recebido_base", "Recebido base"), ("vl_acrescimo_recebimento", "Acrescimos"),
         ("vl_saldo_estimado", "Saldo estimado"), ("vl_medio_por_atendimento", "Media faturada por atendimento"),
