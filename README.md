@@ -64,6 +64,18 @@ See [Portfolio demo guide](docs/DEMO.md).
 
 ## Architecture
 
+```mermaid
+flowchart LR
+    Browser --> React
+    React --> FastAPI
+    FastAPI --> Auth[Authentication and RBAC]
+    FastAPI --> Cache[Bounded cache]
+    FastAPI --> Services
+    Services --> Queries
+    Queries --> Oracle[(Oracle read-only)]
+    FastAPI --> Exports[CSV / PDF / XML]
+```
+
 ```text
 ┌───────────────────────────────────────────────┐
 │                  React UI                     │
