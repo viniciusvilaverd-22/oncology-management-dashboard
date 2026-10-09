@@ -142,7 +142,7 @@ def _page_header_footer(canvas, doc):
 
     canvas.setFillColor(GRAY_500)
     canvas.setFont("Helvetica", 6.8)
-    canvas.drawString(14 * mm, 8 * mm, "Hospital ERP - Oncologia CONVENIO_DEMO | Relatorio gerencial")
+    canvas.drawString(14 * mm, 8 * mm, "Hospital ERP - Oncologia Convênio Demo | Relatorio gerencial")
     canvas.drawRightString(PAGE_W - 14 * mm, 8 * mm, f"Pagina {canvas.getPageNumber()}")
     canvas.setStrokeColor(GRAY_200)
     canvas.line(14 * mm, 11 * mm, PAGE_W - 14 * mm, 11 * mm)
@@ -280,9 +280,9 @@ def build_pdf(
         leftMargin=14 * mm,
         topMargin=18 * mm,
         bottomMargin=16 * mm,
-        title=f"Relatorio Oncologia CONVENIO_DEMO {data_inicio} a {data_fim}",
+        title=f"Relatorio Oncologia Convênio Demo {data_inicio} a {data_fim}",
         author="TI - Hospital Demonstrativo",
-        subject="Relatorio gerencial de oncologia CONVENIO_DEMO",
+        subject="Relatorio gerencial de oncologia Convênio Demo",
     )
 
     story = []
@@ -304,7 +304,7 @@ def build_pdf(
             )),
             Paragraph(f"Periodo analisado<br/><b>{data_inicio} a {data_fim}</b>", S_RIGHT),
         ],
-        [Paragraph("Oncologia - CONVENIO_DEMO", S_TITLE), Paragraph(f"Emitido em<br/><b>{emitted}</b>", S_RIGHT)],
+        [Paragraph("Oncologia - Convênio Demo", S_TITLE), Paragraph(f"Emitido em<br/><b>{emitted}</b>", S_RIGHT)],
         [Paragraph("Faturamento, remessas, glosas e indicadores assistenciais", S_SUBTITLE), ""],
     ], colWidths=[180 * mm, 75 * mm])
     hero.setStyle(TableStyle([
@@ -317,9 +317,9 @@ def build_pdf(
 
     # Precision note
     note = Table([[Paragraph(
-        "<b>Nota de precisao financeira:</b> recebimentos reais usam RECCON_REC.DT_RECEBIMENTO e os valores alocados em "
-        "V_AJUSTES_RECEBIMENTO_DET. O indicador SN_PAGA da remessa permanece apenas como status operacional. "
-        "DT_RECEBIMENTO e apresentada como data de recebimento registrada no financeiro, nao como data bancaria.",
+        "<b>Nota de precisao financeira:</b> recebimentos reais usam receipt_date e os valores alocados em "
+        "ReceiptAdjustment. O indicador batch_paid_flag da remessa permanece apenas como status operacional. "
+        "receipt_date e apresentada como data de recebimento registrada no financeiro, nao como data bancaria.",
         S_BODY,
     )]], colWidths=[255 * mm])
     note.setStyle(TableStyle([
@@ -356,10 +356,10 @@ def build_pdf(
         ["Faturado", brl(financeiro.get("vl_faturado")), "Base financeira das contas oncologicas do periodo"],
         ["Remetido", brl(financeiro.get("vl_remetido")), "Contas associadas a remessa"],
         ["Nao remetido", brl(financeiro.get("vl_nao_remetido")), "Contas ainda sem remessa vinculada"],
-        ["Remessas marcadas como pagas", brl(financeiro.get("vl_remessas_pagas")), "Status SN_PAGA='S' - nao equivale a recebimento efetivo"],
+        ["Remessas marcadas como pagas", brl(financeiro.get("vl_remessas_pagas")), "Status batch_paid_flag='S' - nao equivale a recebimento efetivo"],
         ["Remessas nao pagas", brl(financeiro.get("vl_remessas_nao_pagas")), "Remessas sem status de paga"],
         ["Glosa bruta", brl(financeiro.get("vl_glosa_bruta")), f"{integer(financeiro.get('qt_eventos_glosa'))} eventos"],
-        ["Glosa revertida", brl(financeiro.get("vl_glosa_revertida")), "Regra validada para motivo 324 no fluxo CONVENIO_DEMO"],
+        ["Glosa revertida", brl(financeiro.get("vl_glosa_revertida")), "Regra validada para regra demonstrativa de ajuste no fluxo Convênio Demo"],
         ["Glosa liquida", brl(financeiro.get("vl_glosa_liquida")), percent(financeiro.get("pct_glosa_liquida_remetido"), 4) + " do remetido"],
     ]
     composition_block = KeepTogether([
@@ -371,7 +371,7 @@ def build_pdf(
 
     story += [Spacer(1, 3 * mm), Paragraph("Recebimentos financeiros reais", S_SECTION)]
     story.append(Paragraph(
-        "Nesta secao, o periodo e aplicado a RECCON_REC.DT_RECEBIMENTO. A composicao e rastreada por evento financeiro, item faturado, conta, remessa, atendimento e paciente.",
+        "Nesta secao, o periodo e aplicado a receipt_date. A composicao e rastreada por evento financeiro, item faturado, conta, remessa, atendimento e paciente.",
         S_BODY,
     ))
     story.append(Spacer(1, 3 * mm))
@@ -417,7 +417,7 @@ def build_pdf(
             [32 * mm, 42 * mm, 42 * mm, 42 * mm, 47 * mm, 50 * mm],
         ))
         story += [Spacer(1, 3 * mm), Paragraph(
-            "* O agrupamento mensal acima segue a data de lancamento das contas. A secao de recebimentos usa RECCON_REC.DT_RECEBIMENTO e possui linha temporal propria.",
+            "* O agrupamento mensal acima segue a data de lancamento das contas. A secao de recebimentos usa receipt_date e possui linha temporal propria.",
             S_SMALL,
         )]
     else:
@@ -429,7 +429,7 @@ def build_pdf(
         motivo_rows = []
         for r in motivos:
             motivo_rows.append([
-                safe(r.get("cd_motivo_glosa")), safe(r.get("ds_motivo_glosa")),
+                safe(r.get("adjustment_reason_code")), safe(r.get("adjustment_reason_description")),
                 integer(r.get("qt_glosas")), integer(r.get("qt_contas")),
                 brl(r.get("vl_glosa")), brl(r.get("vl_liquida")),
             ])
@@ -447,8 +447,8 @@ def build_pdf(
         detail_rows = []
         for g in glosas:
             detail_rows.append([
-                short_date(g.get("dt_glosa")), safe(g.get("cd_reg_amb")), safe(g.get("cd_atendimento")),
-                safe(g.get("cd_pro_fat")), safe(g.get("ds_pro_fat")), safe(g.get("ds_motivo_glosa")),
+                short_date(g.get("adjustment_date")), safe(g.get("account_id")), safe(g.get("encounter_id")),
+                safe(g.get("billing_item_code")), safe(g.get("billing_item_description")), safe(g.get("adjustment_reason_description")),
                 brl(g.get("vl_glosa")), safe(g.get("status_analitico")),
             ])
         story.append(_standard_table(
@@ -463,7 +463,7 @@ def build_pdf(
         story += [PageBreak(), Paragraph("Composicao das remessas", S_SECTION)]
         story.append(Paragraph(
             "Esta secao abre o valor por remessa e mostra quantas contas, atendimentos e pacientes compoem cada total. "
-            "SN_PAGA continua sendo status operacional; recebimentos reais sao conciliados separadamente pela cadeia RECCON_REC/V_AJUSTES_RECEBIMENTO_DET.",
+            "O status do BillingBatch continua sendo apenas operacional; recebimentos reais sao conciliados separadamente pela cadeia ReceiptEvent/ReceiptAdjustment.",
             S_BODY,
         ))
         story.append(Spacer(1, 3 * mm))
@@ -471,8 +471,8 @@ def build_pdf(
             rem_rows = []
             for r in remessas:
                 rem_rows.append([
-                    safe(r.get("cd_remessa")), safe(r.get("nr_remessa_convenio")),
-                    short_date(r.get("dt_fechamento")), safe(r.get("sn_paga")),
+                    safe(r.get("billing_batch_id")), safe(r.get("payer_batch_reference")),
+                    short_date(r.get("billing_batch_close_date")), safe(r.get("batch_paid_flag")),
                     integer(r.get("qt_contas")), integer(r.get("qt_atendimentos")), integer(r.get("qt_pacientes")),
                     brl(r.get("vl_faturado")), brl(r.get("vl_recebido_base")), brl(r.get("vl_saldo_estimado")),
                     safe(r.get("status_recebimento")),
@@ -489,7 +489,7 @@ def build_pdf(
         story += [PageBreak(), Paragraph("Pacientes - consolidacao do periodo", S_SECTION)]
         story.append(Paragraph(
             "Totais por paciente com quantidade de atendimentos/contas, faturamento, glosa e valor pos-glosa. "
-            "Quando disponivel, custo de medicamento vem de FA_CUSTO_ATENDIMENTO e nao representa o custo hospitalar total.",
+            "Quando disponivel, custo de medicamento vem de fonte privada de custo e nao representa o custo hospitalar total.",
             S_BODY,
         ))
         story.append(Spacer(1, 3 * mm))
@@ -497,11 +497,11 @@ def build_pdf(
             pac_rows = []
             for r in pacientes:
                 pac_rows.append([
-                    safe(r.get("cd_paciente")), safe(r.get("nm_paciente")), integer(r.get("qt_atendimentos")),
+                    safe(r.get("patient_id")), safe(r.get("patient_name")), integer(r.get("qt_atendimentos")),
                     integer(r.get("qt_contas")), brl(r.get("vl_faturado")), brl(r.get("vl_glosa_liquida")),
                     brl(r.get("vl_recebido_base")), brl(r.get("vl_saldo_estimado")),
                     brl(r.get("vl_medio_por_atendimento")),
-                    brl(r.get("vl_custo_medicamento")) if "vl_custo_medicamento" in r else "-",
+                    brl(r.get("medication_cost_amount")) if "medication_cost_amount" in r else "-",
                 ])
             story.append(_standard_table(
                 ["Cod.", "Paciente", "Atend.", "Contas", "Faturado", "Glosa", "Receb. base", "Saldo", "Media/atend.", "Custo med.*"],
@@ -517,8 +517,8 @@ def build_pdf(
             atend_rows = []
             for r in atendimentos:
                 atend_rows.append([
-                    safe(r.get("nm_paciente")), safe(r.get("cd_atendimento")), safe(r.get("cd_reg_amb")),
-                    short_date(r.get("dt_atendimento")), safe(r.get("cd_remessa")), safe(r.get("sn_paga")),
+                    safe(r.get("patient_name")), safe(r.get("encounter_id")), safe(r.get("account_id")),
+                    short_date(r.get("encounter_date")), safe(r.get("billing_batch_id")), safe(r.get("batch_paid_flag")),
                     brl(r.get("vl_faturado")), brl(r.get("vl_glosa_liquida")), brl(r.get("vl_recebido_base")),
                     brl(r.get("vl_saldo_estimado")), safe(r.get("status_financeiro")),
                 ])
@@ -529,7 +529,7 @@ def build_pdf(
                 small=True,
             ))
             story += [Spacer(1, 3*mm), Paragraph(
-                "* Paga = SN_PAGA da REMESSA_FATURA e permanece apenas como status operacional. Receb. base usa os eventos financeiros conciliados. ", S_SMALL,
+                "* Paga = status operacional do BillingBatch e permanece apenas como status operacional. Receb. base usa os eventos financeiros conciliados. ", S_SMALL,
             )]
         else:
             story.append(Paragraph("Detalhamento por atendimento indisponivel para esta execucao.", S_BODY))
@@ -539,7 +539,7 @@ def build_pdf(
         ev_rows = []
         for r in pagamentos_eventos:
             ev_rows.append([
-                safe(r.get("cd_reccon_rec")), short_date(r.get("dt_recebimento")),
+                safe(r.get("receipt_event_id")), short_date(r.get("receipt_date")),
                 integer(r.get("qt_remessas_onco")), integer(r.get("qt_contas_onco")),
                 integer(r.get("qt_pacientes_onco")), brl(r.get("vl_evento_total")),
                 brl(r.get("vl_onco_recebido")), percent(r.get("pct_onco_evento")),
@@ -573,7 +573,7 @@ def build_pdf(
         prod_rows = []
         for p in produtos:
             prod_rows.append([
-                safe(p.get("cd_produto")), safe(p.get("ds_produto")), safe(p.get("sn_medicamento")),
+                safe(p.get("product_id")), safe(p.get("product_description")), safe(p.get("is_medication")),
                 integer(p.get("mov_onco")), integer(p.get("mov_total")), percent(p.get("pct_onco")),
                 safe(p.get("classificacao")), safe(p.get("confianca")),
             ])
@@ -589,12 +589,12 @@ def build_pdf(
     # Methodology / provenance
     story += [PageBreak(), Paragraph("Metodologia e rastreabilidade", S_SECTION)]
     methodological = [
-        "O relatorio consolida dados assistenciais e financeiros vinculados aos atendimentos oncologicos do convenio CONVENIO_DEMO (CD_CONVENIO=11).",
+        "O relatorio consolida dados assistenciais e financeiros vinculados aos atendimentos oncologicos do convenio Convênio Demo.",
         "As consultas sao somente leitura e o periodo operacional permanece limitado a 93 dias por execucao.",
-        "Faturamento, remessa e recebimento sao tratados como eventos distintos. SN_PAGA permanece apenas como status operacional da remessa.",
-        "Recebimentos reais usam RECCON_REC.DT_RECEBIMENTO e V_AJUSTES_RECEBIMENTO_DET; ITFAT_NOTA_FISCAL e V_FNCP_ITEM_CONVENIO fornecem conta, remessa, competencia e rastreabilidade assistencial.",
-        "DT_RECEBIMENTO e apresentada como data de recebimento registrada no financeiro, sem inferir data bancaria quando essa informacao nao esta comprovada.",
-        "Glosas sao vinculadas diretamente as contas oncologicas identificadas no periodo. O motivo 324 e tratado como revertido apenas na regra previamente validada para este fluxo CONVENIO_DEMO.",
+        "Faturamento, remessa e recebimento sao tratados como eventos distintos. O status do BillingBatch permanece separado dos eventos financeiros.",
+        "Recebimentos reais usam receipt_date e ReceiptAdjustment; InvoiceItem e InvoiceItem fornecem conta, remessa, competencia e rastreabilidade assistencial.",
+        "receipt_date e apresentada como data de recebimento registrada no financeiro, sem inferir data bancaria quando essa informacao nao esta comprovada.",
+        "Glosas sao vinculadas diretamente as contas oncologicas identificadas no periodo. O regra demonstrativa de ajuste e tratado como revertido apenas na regra previamente validada para este fluxo Convênio Demo.",
     ]
     for item in methodological:
         story.append(Paragraph(f"• {item}", S_BODY))
@@ -602,7 +602,7 @@ def build_pdf(
 
     sign = Table([
         [Paragraph("TI - Hospital Demonstrativo", ParagraphStyle("Sig1", parent=S_BODY, fontName="Helvetica-Bold"))],
-        [Paragraph("By - Vinicius Vilaverde", S_BODY)],
+        [Paragraph("Portfolio demonstrativo", S_BODY)],
     ], colWidths=[90 * mm])
     sign.setStyle(TableStyle([
         ("LINEABOVE", (0, 0), (-1, 0), 0.8, GOLD),
@@ -630,30 +630,30 @@ def build_account_pdf(payload: dict) -> bytes:
         leftMargin=14 * mm,
         topMargin=18 * mm,
         bottomMargin=16 * mm,
-        title=f"Conta oncológica {safe(conta.get('cd_reg_amb'))}",
+        title=f"Conta oncológica {safe(conta.get('account_id'))}",
         author="TI - Hospital Demonstrativo",
         subject="Detalhamento de conta oncológica",
     )
     emitted = datetime.now().strftime("%d/%m/%Y %H:%M")
     story = []
-    cd_convenio = conta.get("cd_convenio")
-    convenio_label = "CONVENIO_DEMO · Convênio 11" if str(cd_convenio) == "11" else f"Convênio {safe(cd_convenio)}"
-    remetida = bool(conta.get("cd_remessa"))
-    remessa_label = safe(conta.get("cd_remessa")) if remetida else "Não remetida"
-    nr_remessa_label = safe(conta.get("nr_remessa_convenio")) if remetida else "Não remetida"
-    fechamento_label = short_date(conta.get("dt_fechamento_remessa")) if remetida else "Não remetida"
+    payer_id = conta.get("payer_id")
+    convenio_label = "Convênio Demo · Convênio 11" if str(payer_id) == "11" else f"Convênio {safe(payer_id)}"
+    remetida = bool(conta.get("billing_batch_id"))
+    remessa_label = safe(conta.get("billing_batch_id")) if remetida else "Não remetida"
+    payer_reference_label = safe(conta.get("payer_batch_reference")) if remetida else "Não remetida"
+    fechamento_label = short_date(conta.get("billing_batch_close_date")) if remetida else "Não remetida"
     story += [
         Paragraph("DETALHAMENTO DE CONTA", ParagraphStyle("AccEyebrow", parent=S_SMALL, fontName="Helvetica-Bold", textColor=GOLD)),
-        Paragraph(f"Conta {safe(conta.get('cd_reg_amb'))} · Oncologia", S_TITLE),
+        Paragraph(f"Conta {safe(conta.get('account_id'))} · Oncologia", S_TITLE),
         Paragraph(f"Relatório interno de conferência · Emitido em {emitted}", S_SUBTITLE),
         Spacer(1, 4 * mm),
     ]
 
     info = [
-        ["Paciente", safe(conta.get("nm_paciente")), "Código paciente", safe(conta.get("cd_paciente"))],
-        ["Atendimento", safe(conta.get("cd_atendimento")), "Data atendimento", short_date(conta.get("dt_atendimento"))],
+        ["Paciente", safe(conta.get("patient_name")), "Código paciente", safe(conta.get("patient_id"))],
+        ["Atendimento", safe(conta.get("encounter_id")), "Data atendimento", short_date(conta.get("encounter_date"))],
         ["Convênio", convenio_label, "Remessa", remessa_label],
-        ["Nº remessa convênio", nr_remessa_label, "Fechamento", fechamento_label],
+        ["Nº remessa convênio", payer_reference_label, "Fechamento", fechamento_label],
         ["Status", safe(conta.get("status_financeiro")).replace("_", " "), "Último recebimento", short_date(conta.get("ultimo_recebimento"))],
     ]
     t = Table([[P(c, S_CELL) for c in row] for row in info], colWidths=[34*mm, 94*mm, 40*mm, 87*mm])
@@ -683,9 +683,9 @@ def build_account_pdf(payload: dict) -> bytes:
     item_rows = []
     for i in itens:
         item_rows.append([
-            safe(i.get("cd_lancamento")), short_date(i.get("dt_sessao") or i.get("dt_producao")),
-            safe(i.get("cd_pro_fat")), safe(i.get("ds_pro_fat")),
-            safe(i.get("qt_lancamento")), brl(i.get("vl_unitario")), brl(i.get("vl_total_conta")),
+            safe(i.get("line_item_id")), short_date(i.get("session_date") or i.get("production_date")),
+            safe(i.get("billing_item_code")), safe(i.get("billing_item_description")),
+            safe(i.get("quantity")), brl(i.get("unit_amount")), brl(i.get("account_total_amount")),
         ])
     story += [_account_items_table(
         ["Lanç.", "Data", "Código", "Descrição", "Qtde", "Valor unit.", "Valor total"],
@@ -695,16 +695,16 @@ def build_account_pdf(payload: dict) -> bytes:
 
     if recebimentos:
         story += [Paragraph("Recebimentos vinculados", S_SECTION)]
-        rows = [[safe(r.get("cd_reccon_rec")), short_date(r.get("dt_recebimento")), brl(r.get("vl_recebido_base")), brl(r.get("vl_acrescimo")), brl(r.get("vl_glosa"))] for r in recebimentos]
+        rows = [[safe(r.get("receipt_event_id")), short_date(r.get("receipt_date")), brl(r.get("vl_recebido_base")), brl(r.get("vl_acrescimo")), brl(r.get("vl_glosa"))] for r in recebimentos]
         story += [_standard_table(["Evento", "Data financeira", "Recebido base", "Acréscimo", "Glosa"], rows, [35*mm, 42*mm, 55*mm, 55*mm, 55*mm]), Spacer(1, 5*mm)]
 
     if glosas:
         story += [Paragraph("Glosas", S_SECTION)]
-        rows = [[short_date(g.get("dt_glosa")), safe(g.get("cd_pro_fat")), safe(g.get("ds_pro_fat")), safe(g.get("ds_motivo_glosa")), brl(g.get("vl_glosa"))] for g in glosas]
+        rows = [[short_date(g.get("adjustment_date")), safe(g.get("billing_item_code")), safe(g.get("billing_item_description")), safe(g.get("adjustment_reason_description")), brl(g.get("vl_glosa"))] for g in glosas]
         story += [_standard_table(["Data", "Código", "Procedimento", "Motivo", "Valor"], rows, [24*mm, 24*mm, 86*mm, 86*mm, 35*mm], small=True)]
 
     story += [Spacer(1, 5*mm), Paragraph(
-        "Fonte dos itens: ITREG_AMB + PRO_FAT. A data de recebimento exibida corresponde ao registro financeiro do MV e não deve ser interpretada como data de crédito bancário.",
+        "Fonte dos itens: InvoiceItem + BillingItem. A data de recebimento exibida corresponde ao registro financeiro do MV e não deve ser interpretada como data de crédito bancário.",
         S_SMALL,
     )]
     doc.build(story, onFirstPage=_account_page_header_footer, onLaterPages=_account_page_header_footer)

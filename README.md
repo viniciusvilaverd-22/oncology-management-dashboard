@@ -1,7 +1,5 @@
 # Oncology Management Dashboard
 
-[![CI](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml)
-
 > Full-stack healthcare operations platform focused on oncology production, billing traceability, financial reconciliation, denials management and account-level auditability.
 
 This repository is a **sanitized portfolio edition** of a production-oriented healthcare analytics system. It preserves the architecture, data-flow design and engineering decisions while excluding credentials, patient data, institutional identifiers, internal network information and environment-specific secrets.
@@ -28,7 +26,7 @@ The project was designed around six engineering priorities:
 
 - **Financial correctness** — preserve the semantic difference between production date, billing competence and actual receipt date.
 - **Traceability** — allow navigation from aggregated indicators to patient, attendance, account, remittance and receipt-event detail.
-- **Read-only integration** — consume Oracle healthcare data without introducing write risk into the source ERP.
+- **Read-only integration** — consume healthcare ERP data through a private read-only adapter without introducing write risk into the source system.
 - **Operational performance** — reduce unnecessary database load through bounded caching, lazy data loading and reusable query layers.
 - **Security by design** — local application authentication, role-based access control, session management and CSRF protection.
 - **Deployability** — support a conventional Linux deployment model with reverse proxy, application service supervision and CI validation.
@@ -58,6 +56,7 @@ See [Portfolio demo guide](docs/DEMO.md).
 ## Technical Documentation
 
 - [System guide](docs/SYSTEM_GUIDE.md) — public-safe architecture, domain semantics, security, performance, testing and deployment reference.
+- [Public/private documentation boundary](docs/PUBLIC_PRIVATE_BOUNDARY.md) — rules for portfolio content, operational runbooks, generic domain naming and publication hygiene.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
 - [Analytical data model](docs/DATA_MODEL.md)
@@ -74,7 +73,7 @@ flowchart LR
     FastAPI --> Cache[Bounded cache]
     FastAPI --> Services
     Services --> Queries
-    Queries --> Oracle[(Oracle read-only)]
+    Queries --> operational data source[(operational data source read-only)]
     FastAPI --> Exports[CSV / PDF / XML]
 ```
 
@@ -90,7 +89,7 @@ flowchart LR
 └───────────────────────┬───────────────────────┘
                         │ read-only
 ┌───────────────────────▼───────────────────────┐
-│                 Oracle Database               │
+│                 Operational ERP               │
 │ production · billing · receipts · denials    │
 └───────────────────────────────────────────────┘
 ```
@@ -100,7 +99,7 @@ flowchart LR
 | Layer | Technology |
 |---|---|
 | Backend | Python, FastAPI |
-| Database | Oracle |
+| Integration | Generic adapter contract; private operational implementation omitted |
 | Frontend | React, Vite |
 | Visualization | Recharts |
 | Authentication | Local application users, secure sessions, CSRF |
@@ -210,7 +209,7 @@ A single account may be paid across several receipt events and several months.
 
 **Approach:** receipt events are accumulated by account while preserving the individual event history.
 
-### 3. Oracle query cost
+### 3. operational data query cost
 
 Operational healthcare schemas can produce expensive joins and repeated reads.
 
@@ -226,7 +225,7 @@ Operational healthcare schemas can produce expensive joins and repeated reads.
 
 The application consumes production ERP data but must not become a write path into the hospital database.
 
-**Approach:** the Oracle integration is designed as **read-only**.
+**Approach:** the private operational adapter is designed as **read-only**.
 
 ### 5. Access control
 
@@ -245,7 +244,7 @@ Financial and patient-related operational views require controlled access.
 The public portfolio repository intentionally excludes:
 
 - `.env` files;
-- Oracle credentials;
+- operational adapter credentials;
 - database files;
 - session databases;
 - private keys and certificates;
@@ -306,7 +305,7 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-To run against a compatible Oracle environment, create a local environment file from the provided example and supply your own non-production credentials.
+The public repository does not include the operational adapter. Private deployments provide it separately through `DATA_ADAPTER=package.module:factory`.
 
 ### Frontend
 
@@ -350,7 +349,7 @@ The CI pipeline validates backend tests and the frontend production build on rep
 - Do not label billed value as operational cost.
 - Keep denial and outstanding balance as separate concepts.
 - Prefer auditable account-level drill-down over opaque aggregate KPIs.
-- Keep production database integration read-only.
+- Keep the operational adapter read-only.
 - Expose technical assumptions in code and documentation.
 
 ## Portfolio Context
@@ -358,11 +357,6 @@ The CI pipeline validates backend tests and the frontend production build on rep
 This project demonstrates practical software engineering applied to a complex healthcare revenue-cycle problem: integrating operational and financial data, preserving date semantics, securing access, optimizing repeated queries and presenting the result through an auditable analytical interface.
 
 The public version is intentionally decoupled from any specific healthcare institution and contains no production data.
-
-## Author
-
-**Vinícius Vilaverde**  
-Software Engineering · Healthcare Systems · Data Integration · Full-Stack Development
 
 ## License
 

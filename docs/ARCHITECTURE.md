@@ -2,7 +2,7 @@
 
 ## System boundary
 
-The application is an analytical layer over a healthcare ERP. Oracle remains the system of record and is accessed in read-only mode.
+The public repository contains the analytical application and a generic integration contract. The operational ERP remains the system of record, but its concrete adapter, SQL, schema mappings and environment configuration are intentionally private.
 
 ```text
 Browser
@@ -13,13 +13,18 @@ React / Vite
   ▼
 FastAPI
   ├── Authentication / RBAC
-  ├── Query orchestration
+  ├── Service orchestration
   ├── Bounded cache
   ├── Export services
   └── Audit logging
   │
   ▼
-Oracle (read-only)
+Generic integration contract
+  │
+  └── Private operational adapter (not included)
+        │ read-only
+        ▼
+     Operational ERP
 ```
 
 ## Backend
@@ -28,14 +33,17 @@ The backend separates responsibilities into:
 
 - `api/` — HTTP routes and request validation;
 - `auth/` — users, roles, sessions and CSRF;
-- `db/` — Oracle access;
-- `queries/` — SQL grouped by business domain;
-- `services/` — orchestration, caching and response semantics;
+- `integrations/` — public adapter protocol, registry and safe unavailable default;
+- `services/` — business orchestration, caching and response semantics;
 - `exports/` — PDF, CSV and XML generation.
+
+The public code does not contain operational SQL or ERP table/view mappings. A private package can implement the adapter contract and be loaded through `DATA_ADAPTER=package.module:factory`.
 
 ## Frontend
 
-The frontend uses React for the application shell, drill-down flows and analytical views. Expensive datasets are loaded lazily so opening the application does not trigger every available Oracle query.
+The frontend uses React for the application shell, drill-down flows and analytical views. Expensive datasets are loaded lazily so opening the application does not trigger every available operational read.
+
+The portfolio demo uses deterministic synthetic data and does not require the private adapter.
 
 ## Time semantics
 
@@ -49,12 +57,12 @@ The architecture avoids subtracting values merely because they appear inside the
 
 ## Caching
 
-The application uses bounded in-memory caching with TTLs appropriate to each analytical query. Single-flight loading prevents equivalent concurrent requests from executing the same expensive database read simultaneously.
+The application uses bounded in-memory caching with TTLs appropriate to each analytical dataset. Single-flight loading prevents equivalent concurrent requests from executing the same expensive operational read simultaneously.
 
 The cache is an optimization layer, not a system of record.
 
 ## Security boundary
 
-The web application manages its own users and permissions while the source ERP integration remains read-only. State-changing application endpoints use session authentication and CSRF validation.
+The web application manages its own users and permissions. The operational integration is read-only and lives outside the public repository. State-changing application endpoints use session authentication and CSRF validation.
 
 Production deployments should use TLS, secure cookies and standard reverse-proxy hardening.

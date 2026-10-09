@@ -1,7 +1,0 @@
-PRD5340 =
-  (DESCRIPTION =
-    (ADDRESS = (PROTOCOL = TCP)(HOST = dbprd.5340.cloudmv.com.br)(PORT = 1521))
-    (CONNECT_DATA =
-      (SERVICE_NAME = prd5340.db5340.mv5340vcn.oraclevcn.com)
-    )
-  )

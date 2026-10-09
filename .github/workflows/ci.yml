@@ -47,12 +47,21 @@ jobs:
             exit 1
           fi
 
-      - name: Reject vendor-specific references in public docs
+      - name: Reject personal-name references
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE 'SOUL MV|DBAMV|AGENDAMENTO_ONCOLOGICO|ITREG_AMB|REG_AMB|RECCON_REC|V_AJUSTES_RECEBIMENTO_DET|ITFAT_NOTA_FISCAL|V_FNCP_ITEM_CONVENIO|CD_CONVENIO[[:space:]]*=[[:space:]]*11' README.md SECURITY.md CHANGELOG.md docs; then
-            echo "Vendor-specific operational reference found in public documentation."
+          if grep -RniE 'Vin[ií]cius|Vilaverde' . --exclude-dir=.git --exclude=ci.yml --exclude=package-lock.json; then
+            echo "Personal-name reference found in public repository content."
+            exit 1
+          fi
+
+      - name: Reject private adapter implementation references
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SOUL MV|DBAMV|AGENDAMENTO_ONCOLOGICO|ITREG_AMB|REG_AMB|RECCON_REC|V_AJUSTES_RECEBIMENTO_DET|ITFAT_NOTA_FISCAL|V_FNCP_ITEM_CONVENIO|REMESSA_FATURA|FA_CUSTO_ATENDIMENTO|CD_REG_AMB|CD_RECCON_REC|CD_ATENDIMENTO|CD_PACIENTE|CD_REMESSA|SN_PAGA|ORACLE_|oracledb|instantclient|tnsnames|CONVENIO_DEMO|X-Convenio-Id|faturamentoMv|setoresMv|fatMv' . --exclude-dir=.git --exclude=package-lock.json --exclude=ci.yml; then
+            echo "Private operational adapter reference found in public repository content."
             exit 1
           fi
 
