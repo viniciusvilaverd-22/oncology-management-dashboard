@@ -11,7 +11,7 @@
     "test:demo": "node --test src/demoData.test.js"
   },
   "dependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
+    "@vitejs/plugin-react": "^6.1.2",
     "vite": "^6.0.5",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
