@@ -213,7 +213,7 @@ backend/app/
 - **services/** — business rules, temporal semantics, metric composition and caching.
 - **exports/** — CSV, PDF and XML generation.
 
-The public repository contains no operational query layer and no concrete database driver.
+The public repository contains no embedded operational SQL implementation and no concrete database driver.
 
 ## 11. Integration boundary
 
