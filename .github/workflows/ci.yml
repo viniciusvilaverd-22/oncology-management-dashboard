@@ -47,6 +47,15 @@ jobs:
             exit 1
           fi
 
+      - name: Reject vendor-specific references in public docs
+        shell: bash
+        run: |
+          set -euo pipefail
+          if grep -RniE 'SOUL MV|DBAMV|AGENDAMENTO_ONCOLOGICO|ITREG_AMB|REG_AMB|RECCON_REC|V_AJUSTES_RECEBIMENTO_DET|ITFAT_NOTA_FISCAL|V_FNCP_ITEM_CONVENIO|CD_CONVENIO[[:space:]]*=[[:space:]]*11' README.md SECURITY.md CHANGELOG.md docs; then
+            echo "Vendor-specific operational reference found in public documentation."
+            exit 1
+          fi
+
       - name: Reject common secret patterns
         shell: bash
         run: |

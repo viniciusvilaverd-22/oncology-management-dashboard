@@ -57,6 +57,7 @@ See [Portfolio demo guide](docs/DEMO.md).
 
 ## Technical Documentation
 
+- [System guide](docs/SYSTEM_GUIDE.md) — public-safe architecture, domain semantics, security, performance, testing and deployment reference.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
 - [Analytical data model](docs/DATA_MODEL.md)
