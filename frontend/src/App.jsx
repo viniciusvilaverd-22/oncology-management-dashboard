@@ -401,11 +401,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
   const [financeiro, setFinanceiro] = useState({});
   const [capabilities, setCapabilities] = useState({});
   const [mensal, setMensal] = useState([]);
-  const [fatCompetenciaResumo, setFatMvResumo] = useState({});
-  const [fatCompetenciaMensal, setFatMvMensal] = useState([]);
-  const [fatCompetenciaSetores, setFatMvSetores] = useState([]);
+  const [fatCompetenciaResumo, setFatCompetenciaResumo] = useState({});
+  const [fatCompetenciaMensal, setFatCompetenciaMensal] = useState([]);
+  const [fatCompetenciaSetores, setFatCompetenciaSetores] = useState([]);
   const [integrado, setIntegrado] = useState({});
-  const [setoresCompetencia, setSetoresMv] = useState("10");
+  const [setoresCompetencia, setSetoresCompetencia] = useState("10");
   const [atendimentos, setAtendimentos] = useState([]);
   const [pacientes, setPacientes] = useState([]);
   const [motivos, setMotivos] = useState([]);
@@ -471,9 +471,9 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
     setResumo({});
     setFinanceiro({});
     setMensal([]);
-    setFatMvResumo({});
-    setFatMvMensal([]);
-    setFatMvSetores([]);
+    setFatCompetenciaResumo({});
+    setFatCompetenciaMensal([]);
+    setFatCompetenciaSetores([]);
     setIntegrado({});
     setAtendimentos([]);
     setPacientes([]);
@@ -539,11 +539,11 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
       const filtroSetores = setoresCompetencia.trim();
       // Sequencial por desenho: reproduz a regra nativa sem abrir várias consultas pesadas em paralelo.
       const r = await api.faturamentoCompetenciaResumo(fInicio, fFim, filtroSetores);
-      setFatMvResumo(r || {});
+      setFatCompetenciaResumo(r || {});
       const m = await api.faturamentoCompetenciaMensal(fInicio, fFim, filtroSetores);
-      setFatMvMensal(m || []);
+      setFatCompetenciaMensal(m || []);
       const st = await api.faturamentoCompetenciaSetores(fInicio, fFim, filtroSetores);
-      setFatMvSetores(st || []);
+      setFatCompetenciaSetores(st || []);
       setLoaded((s) => ({ ...s, faturamentoCompetencia: filtroSetores || "TODOS" }));
     } catch (e) {
       setErro(e.message || "Falha ao consultar faturamento por competência.");
@@ -1125,7 +1125,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                         className="search"
                         placeholder="Setores do relatório: ex. 10"
                         value={setoresCompetencia}
-                        onChange={(e) => setSetoresMv(e.target.value)}
+                        onChange={(e) => setSetoresCompetencia(e.target.value)}
                         aria-label="Códigos de setor do relatório MV"
                       />
                       <button className="secondary-button" type="button" onClick={loadFaturamentoCompetencia}>Aplicar setores</button>
@@ -1369,7 +1369,7 @@ export default function App({ session, convenios = [], convenio, onConvenioChang
                   subtitle="Paciente → atendimento → conta → remessa → recebimento → glosa → saldo."
                   actions={<input className="search" placeholder="Buscar paciente, atendimento, conta ou remessa" value={search} onChange={(e) => setSearch(e.target.value)} />}
                 >
-                  {capabilities.custo_medicamento && <div className="inline-note">* Custo medicamento vem de FA_CUSTO_ATENDIMENTO e não representa o custo hospitalar total.</div>}
+                  {capabilities.custo_medicamento && <div className="inline-note">* Custo de medicamento vem de uma fonte privada validada e não representa o custo hospitalar total.</div>}
                   {loading.atendimentos ? <div className="empty-state">Consultando atendimentos…</div> : (
                     <DataTable columns={atendCols} rows={filterRows(atendimentos, ["patient_name", "patient_id", "encounter_id", "account_id", "billing_batch_id", "status_financeiro"])} keyField="account_id" onRowClick={abrirConta} />
                   )}
