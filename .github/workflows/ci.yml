@@ -10,8 +10,28 @@ permissions:
   contents: read
 
 jobs:
+  repository:
+    name: Repository quality
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate public repository hygiene
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f README.md
+          test -f SECURITY.md
+          test -f .env.example
+          if find . -type f \( -name '.env' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' \) | grep -q .; then
+            echo "Sensitive file type found in repository."
+            exit 1
+          fi
+
   backend:
     name: Backend tests
+    if: ${{ hashFiles('backend/**') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -38,6 +58,7 @@ jobs:
 
   frontend:
     name: Frontend build
+    if: ${{ hashFiles('frontend/package-lock.json') != '' }}
     runs-on: ubuntu-latest
     defaults:
       run:
