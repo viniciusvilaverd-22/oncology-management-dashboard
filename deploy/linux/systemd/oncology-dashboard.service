@@ -1,0 +1,17 @@
+[Unit]
+Description=Oncology Management Dashboard API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=oncology
+Group=oncology
+WorkingDirectory=/opt/oncology-management-dashboard/backend
+EnvironmentFile=/opt/oncology-management-dashboard/.env
+ExecStart=/opt/oncology-management-dashboard/backend/.venv/bin/uvicorn app.main:app --host 127.0.0.1 --port 8091
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
