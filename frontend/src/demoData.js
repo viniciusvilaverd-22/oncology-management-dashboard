@@ -1,4 +1,5 @@
-export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+const viteEnv = import.meta.env || {};
+export const DEMO_MODE = viteEnv.VITE_DEMO_MODE === "true";
 
 export const demoSession = {
   user: {
