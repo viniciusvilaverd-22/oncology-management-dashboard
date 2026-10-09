@@ -33,6 +33,28 @@ The project was designed around six engineering priorities:
 - **Security by design** — local application authentication, role-based access control, session management and CSRF protection.
 - **Deployability** — support a conventional Linux deployment model with reverse proxy, application service supervision and CI validation.
 
+## Run the Demo
+
+A deterministic synthetic-data mode is included for portfolio review.
+
+```bash
+cd frontend
+npm ci
+npm run demo
+```
+
+Open `http://localhost:4173`.
+
+Docker:
+
+```bash
+docker compose -f docker-compose.demo.yml up --build
+```
+
+Open `http://localhost:8080`.
+
+See [Portfolio demo guide](docs/DEMO.md).
+
 ## Technical Documentation
 
 - [Architecture](docs/ARCHITECTURE.md)
