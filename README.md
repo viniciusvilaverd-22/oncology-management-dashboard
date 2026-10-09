@@ -1,5 +1,7 @@
 # Oncology Management Dashboard
 
+[![CI](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml/badge.svg)](https://github.com/viniciusvilaverd-22/oncology-management-dashboard/actions/workflows/ci.yml)
+
 > Full-stack healthcare operations platform focused on oncology production, billing traceability, financial reconciliation, denials management and account-level auditability.
 
 This repository is a **sanitized portfolio edition** of a production-oriented healthcare analytics system. It preserves the architecture, data-flow design and engineering decisions while excluding credentials, patient data, institutional identifiers, internal network information and environment-specific secrets.
@@ -30,6 +32,13 @@ The project was designed around six engineering priorities:
 - **Operational performance** — reduce unnecessary database load through bounded caching, lazy data loading and reusable query layers.
 - **Security by design** — local application authentication, role-based access control, session management and CSRF protection.
 - **Deployability** — support a conventional Linux deployment model with reverse proxy, application service supervision and CI validation.
+
+## Technical Documentation
+
+- [Architecture](docs/ARCHITECTURE.md)
+- [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
+- [Analytical data model](docs/DATA_MODEL.md)
+- [Security policy](SECURITY.md)
 
 ## Architecture
 
