@@ -6,7 +6,7 @@ All notable changes to the public portfolio edition are documented here.
 
 ### Architecture
 
-- removed the executable operational database driver and SQL query layer from the public repository;
+- removed the executable operational database driver and embedded operational SQL implementation from the public repository;
 - introduced a generic integration contract under `backend/app/integrations/`;
 - made the private operational adapter an external dependency loaded through `DATA_ADAPTER=package.module:factory`;
 - kept operational reads explicitly unavailable when no private adapter is installed;
