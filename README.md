@@ -2,38 +2,36 @@
 
 > Full-stack healthcare operations platform focused on oncology production, billing traceability, financial reconciliation, denials management and account-level auditability.
 
-This repository is a **sanitized portfolio edition** of a production-oriented healthcare analytics system. It preserves the architecture, data-flow design and engineering decisions while excluding credentials, patient data, institutional identifiers, internal network information and environment-specific secrets.
+This repository is a **sanitized portfolio edition** of a production-oriented healthcare analytics system. It preserves the architecture, domain model, data-flow design and engineering decisions while excluding credentials, patient data, institutional identifiers, operational SQL, ERP mappings, internal network information and environment-specific secrets.
+
+**Current public edition: 0.7.0**
 
 ## Overview
 
-Healthcare revenue-cycle data is rarely aligned to a single date or source.
+Healthcare revenue-cycle data is rarely aligned to a single date or source. An oncology account can be produced in one period, billed in another competence, received later through one or more financial events and affected by denials or other adjustments.
 
-An oncology account may be:
+The central objective is to make that lifecycle **traceable from operational production to financial outcome** without collapsing different business clocks into a misleading single-period view.
 
-1. produced in one period;
-2. billed in another competence;
-3. partially received months later;
-4. affected by denials;
-5. adjusted through multiple financial events.
+The application therefore treats these dimensions independently:
 
-The core objective of this project is to make that lifecycle **traceable from operational production to financial outcome** without collapsing different business clocks into a misleading single-period view.
-
-The platform therefore treats production, billing competence and receipt date as distinct dimensions and provides drill-down from executive indicators to account-level detail.
+- production period;
+- billing competence;
+- financial receipt date.
 
 ## Engineering Goals
 
-The project was designed around six engineering priorities:
+The project is organized around six priorities:
 
-- **Financial correctness** — preserve the semantic difference between production date, billing competence and actual receipt date.
-- **Traceability** — allow navigation from aggregated indicators to patient, attendance, account, remittance and receipt-event detail.
-- **Read-only integration** — consume healthcare ERP data through a private read-only adapter without introducing write risk into the source system.
-- **Operational performance** — reduce unnecessary database load through bounded caching, lazy data loading and reusable query layers.
-- **Security by design** — local application authentication, role-based access control, session management and CSRF protection.
-- **Deployability** — support a conventional Linux deployment model with reverse proxy, application service supervision and CI validation.
+- **Financial correctness** — preserve the semantic difference between production, competence and receipt dates.
+- **Traceability** — navigate from aggregated indicators to patient, encounter, account, billing batch and receipt-event detail.
+- **Read-only integration** — consume healthcare ERP data through a private read-only adapter without creating a write path into the source system.
+- **Operational performance** — reduce repeated source reads through bounded caching, lazy loading and adapter-backed service contracts.
+- **Security by design** — local application authentication, RBAC, session management, CSRF protection and repository-hygiene checks.
+- **Deployability** — support conventional Linux deployment patterns plus reproducible CI and a containerized synthetic demo.
 
 ## Run the Demo
 
-A deterministic synthetic-data mode is included for portfolio review.
+The public demo uses deterministic synthetic data and does not require the private operational adapter.
 
 ```bash
 cd frontend
@@ -55,8 +53,8 @@ See [Portfolio demo guide](docs/DEMO.md).
 
 ## Technical Documentation
 
-- [System guide](docs/SYSTEM_GUIDE.md) — public-safe architecture, domain semantics, security, performance, testing and deployment reference.
-- [Public/private documentation boundary](docs/PUBLIC_PRIVATE_BOUNDARY.md) — rules for portfolio content, operational runbooks, generic domain naming and publication hygiene.
+- [System guide](docs/SYSTEM_GUIDE.md) — architecture, domain semantics, security, performance, testing and deployment reference.
+- [Public/private documentation boundary](docs/PUBLIC_PRIVATE_BOUNDARY.md) — rules for portfolio content and private operational material.
 - [Architecture](docs/ARCHITECTURE.md)
 - [Engineering decisions](docs/ENGINEERING_DECISIONS.md)
 - [Analytical data model](docs/DATA_MODEL.md)
@@ -71,28 +69,14 @@ flowchart LR
     React --> FastAPI
     FastAPI --> Auth[Authentication and RBAC]
     FastAPI --> Cache[Bounded cache]
-    FastAPI --> Services
-    Services --> Queries
-    Queries --> operational data source[(operational data source read-only)]
+    FastAPI --> Services[Service layer]
+    Services --> Contract[Generic integration contract]
+    Contract -. private package .-> Adapter[Private operational adapter]
+    Adapter --> ERP[(Operational ERP - read only)]
     FastAPI --> Exports[CSV / PDF / XML]
 ```
 
-```text
-┌───────────────────────────────────────────────┐
-│                  React UI                     │
-│  dashboards · drill-down · charts · exports  │
-└───────────────────────┬───────────────────────┘
-                        │ HTTPS / JSON
-┌───────────────────────▼───────────────────────┐
-│                 FastAPI API                   │
-│ auth · RBAC · CSRF · cache · orchestration   │
-└───────────────────────┬───────────────────────┘
-                        │ read-only
-┌───────────────────────▼───────────────────────┐
-│                 Operational ERP               │
-│ production · billing · receipts · denials    │
-└───────────────────────────────────────────────┘
-```
+The public repository stops at the generic integration contract. The concrete ERP adapter, SQL, schema mappings, credentials and operational runbook are intentionally private.
 
 ### Technology stack
 
@@ -103,53 +87,51 @@ flowchart LR
 | Frontend | React, Vite |
 | Visualization | Recharts |
 | Authentication | Local application users, secure sessions, CSRF |
-| Deployment model | Apache reverse proxy, systemd |
-| Testing | Pytest |
+| Deployment model | Reverse proxy, application service supervision |
+| Testing | Pytest + Node test runner |
 | CI | GitHub Actions |
+| Demo | Docker + deterministic synthetic data |
 
 ## Financial Data Model
 
-A central challenge was avoiding an incorrect comparison between values that belong to different time dimensions.
+A central modeling risk is comparing values that belong to different time dimensions.
 
 The application explicitly separates:
 
 - **Production period** — when oncology activity was produced.
-- **Billing competence** — when the account entered the billing cycle.
+- **Billing competence** — when the account or item entered the billing cycle.
 - **Receipt date** — when the financial system registered a receipt event.
-- **Denial value** — the value identified as a denial/adjustment within the financial flow.
-- **Open balance** — the remaining amount after accumulated receipts and applicable denial values.
+- **Denial/adjustment value** — value associated with a financial adjustment process.
+- **Open balance** — remaining amount after accumulated receipts and applicable adjustments.
 
-The modeled receipt path follows the equivalent of:
+A public conceptual flow is:
 
 ```text
-Billing Item
+PatientEncounter
     ↓
-Invoice / Account Bridge
+AmbulatoryAccount
     ↓
-Receipt Adjustment
+BillingBatch
     ↓
-Receipt Event
+InvoiceItem
+    ↓
+ReceiptEvent
+    ├── ReceiptAdjustment
+    └── AppealEvent
 ```
 
-This allows the interface to answer questions such as:
-
-- Which competence originated a payment?
-- In which month was it actually received?
-- Was the account paid in one or multiple events?
-- How much remains open?
-- How much is associated with a denial?
-- Which account, remittance and attendance generated the financial event?
+The application never treats billing or batch dates as financial receipt dates unless the underlying financial event supports that relationship.
 
 ## Core Capabilities
 
 ### Executive and operational dashboards
 
 - oncology production indicators;
-- billing competence analysis;
+- billing-competence analysis;
 - receipt metrics;
 - aging indicators;
 - denial monitoring;
-- account status summaries;
+- account-status summaries;
 - production-to-financial traceability.
 
 ### Receipt reconciliation
@@ -159,85 +141,51 @@ This allows the interface to answer questions such as:
 - multiple-payment detection;
 - account-level accumulated receipts;
 - receipt aging and percentile indicators;
-- drill-down into the composition of each receipt event.
+- drill-down into receipt-event composition.
 
 ### Account and patient traceability
 
-The operational navigation model follows:
-
 ```text
 Patient
-  → Attendance
+  → Encounter
     → Account
-      → Remittance
+      → Billing Batch
         → Receipt Event
-          → Denial
+          → Adjustment
             → Current Balance
 ```
 
-This enables analysts to move from a high-level KPI to the exact financial and operational records that compose it.
-
-### Denials
-
-The application supports:
-
-- denial totals by reason;
-- account-level denial detail;
-- denial status classification;
-- current open-balance analysis;
-- historical comparison against received values.
-
 ### Exports
 
-Supported reporting workflows include:
-
-- CSV exports;
-- PDF reports;
-- XML exports.
+- CSV;
+- PDF;
+- XML.
 
 ## Key Engineering Challenges
 
-### 1. Different business clocks
+### Different business clocks
 
-The largest modeling risk was treating production, billing and receipt as if they belonged to the same accounting period.
+**Risk:** treating production, billing and receipt as if they belonged to the same accounting period.
 
-**Approach:** each metric retains its native reference date and is only compared when the business relationship is valid.
+**Approach:** every metric retains its native reference date and comparisons are made only when the business relationship is valid.
 
-### 2. Partial and delayed payments
+### Partial and delayed payments
 
-A single account may be paid across several receipt events and several months.
+**Risk:** a single account can be settled through multiple financial events across different months.
 
-**Approach:** receipt events are accumulated by account while preserving the individual event history.
+**Approach:** receipt events are accumulated by account while individual event history remains traceable.
 
-### 3. operational data query cost
+### Operational source cost
 
-Operational healthcare schemas can produce expensive joins and repeated reads.
+**Risk:** analytical drill-downs can create repeated and expensive source reads.
 
-**Approach:**
+**Approach:** lazy loading, bounded cache, TTLs, single-flight loading and explicit detail limits.
 
-- lazy loading for heavy drill-downs;
-- bounded in-memory cache;
-- cache TTLs by query type;
-- single-flight protection to avoid duplicate concurrent loads;
-- explicit row limits for analytical detail endpoints.
+### Safe ERP integration
 
-### 4. Safe ERP integration
+**Risk:** a public analytical application accidentally becomes coupled to or exposes a real operational database implementation.
 
-The application consumes production ERP data but must not become a write path into the hospital database.
-
-**Approach:** the private operational adapter is designed as **read-only**.
-
-### 5. Access control
-
-Financial and patient-related operational views require controlled access.
-
-**Approach:**
-
-- authenticated sessions;
-- role-based access control;
-- CSRF validation for state-changing application operations;
-- password hashing with `scrypt`;
-- audit events for authentication and administrative actions.
+**Approach:** the public application depends on a generic contract. The private adapter owns the real driver, SQL, schema mappings and environment configuration, and is read-only by design.
 
 ## Security Model
 
@@ -245,28 +193,25 @@ The public portfolio repository intentionally excludes:
 
 - `.env` files;
 - operational adapter credentials;
-- database files;
-- session databases;
+- database/session files;
 - private keys and certificates;
-- production exports;
+- production exports, logs and backups;
 - patient data;
-- internal IP addresses and DNS names;
-- production logs and backups.
+- internal IP addresses, DNS names and filesystem paths;
+- operational SQL and ERP schema mappings.
 
-Environment-specific configuration must be supplied locally.
+CI also rejects known private-adapter identifiers, personal-name references and common secret patterns.
 
 ## Performance Strategy
-
-The backend uses a lightweight application-level performance strategy suitable for an internal analytical system:
 
 - bounded cache entries;
 - TTL-based invalidation;
 - single-flight loading;
-- lazy frontend queries;
-- explicit limits on large detail endpoints;
-- client-side filtering for already-loaded analytical datasets.
+- lazy frontend reads;
+- explicit limits on detail endpoints;
+- client-side filtering for already-loaded synthetic/analytical datasets.
 
-The frontend avoids loading every expensive dataset at startup. Heavy account, patient and event details are requested only when the corresponding view or drill-down is opened.
+The cache is an optimization layer, not a system of record.
 
 ## Repository Structure
 
@@ -276,9 +221,8 @@ The frontend avoids loading every expensive dataset at startup. Heavy account, p
 │   ├── app/
 │   │   ├── api/
 │   │   ├── auth/
-│   │   ├── db/
 │   │   ├── exports/
-│   │   ├── queries/
+│   │   ├── integrations/
 │   │   └── services/
 │   ├── tests/
 │   └── requirements.txt
@@ -286,6 +230,7 @@ The frontend avoids loading every expensive dataset at startup. Heavy account, p
 │   ├── public/
 │   └── src/
 ├── deploy/
+├── docs/
 ├── .github/
 │   └── workflows/
 ├── .env.example
@@ -305,7 +250,13 @@ pip install -r requirements-dev.txt
 pytest -q
 ```
 
-The public repository does not include the operational adapter. Private deployments provide it separately through `DATA_ADAPTER=package.module:factory`.
+The public backend intentionally ships without an operational adapter. Private deployments provide one separately with:
+
+```text
+DATA_ADAPTER=package.module:factory
+```
+
+Without that package, operational reads fail explicitly rather than silently falling back to guessed or embedded mappings.
 
 ### Frontend
 
@@ -325,36 +276,31 @@ npm run build
 
 ## Validation
 
-Backend:
+The CI pipeline validates:
 
-```bash
-cd backend
-pytest -q
-```
+- repository hygiene;
+- backend lint and tests;
+- frontend synthetic-data tests;
+- production frontend build;
+- synthetic demo build;
+- demo-container build.
 
-Frontend:
-
-```bash
-cd frontend
-npm ci
-npm run build
-```
-
-The CI pipeline validates backend tests and the frontend production build on repository changes.
+A change is not considered complete while CI is red.
 
 ## Design Principles
 
 - Preserve business semantics before optimizing presentation.
 - Never infer a bank-credit date from a billing date.
-- Do not label billed value as operational cost.
-- Keep denial and outstanding balance as separate concepts.
+- Do not label billed value as hospital cost.
+- Keep denial/adjustment and outstanding financial balance as separate concepts.
 - Prefer auditable account-level drill-down over opaque aggregate KPIs.
 - Keep the operational adapter read-only.
-- Expose technical assumptions in code and documentation.
+- Keep the concrete ERP implementation outside the public repository.
+- Expose assumptions and limitations in public documentation without exposing operational mappings.
 
 ## Portfolio Context
 
-This project demonstrates practical software engineering applied to a complex healthcare revenue-cycle problem: integrating operational and financial data, preserving date semantics, securing access, optimizing repeated queries and presenting the result through an auditable analytical interface.
+This project demonstrates software engineering applied to a complex healthcare revenue-cycle problem: preserving financial date semantics, isolating a private system integration, securing access, optimizing repeated reads and presenting the result through an auditable analytical interface.
 
 The public version is intentionally decoupled from any specific healthcare institution and contains no production data.
 
