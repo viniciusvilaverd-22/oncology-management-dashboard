@@ -1,5 +1,6 @@
 import logging
 from time import perf_counter
+from uuid import uuid4
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -32,11 +33,21 @@ def startup():
 @app.middleware('http')
 async def audit_access(request: Request, call_next):
     started = perf_counter()
+    request_id = request.headers.get('X-Request-ID') or uuid4().hex
     response = await call_next(request)
+    response.headers['X-Request-ID'] = request_id
     if request.url.path.startswith('/api/'):
         client = request.client.host if request.client else '-'
         elapsed_ms = round((perf_counter() - started) * 1000, 1)
-        _audit.info('access client=%s path=%s method=%s status=%s elapsed_ms=%s', client, request.url.path, request.method, response.status_code, elapsed_ms)
+        _audit.info(
+            'access request_id=%s client=%s path=%s method=%s status=%s elapsed_ms=%s',
+            request_id,
+            client,
+            request.url.path,
+            request.method,
+            response.status_code,
+            elapsed_ms,
+        )
     return response
 
 @app.get('/health')
