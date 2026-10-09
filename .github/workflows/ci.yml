@@ -31,7 +31,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if find . -type f \(             -name '.env' -o             -name '*.pem' -o             -name '*.key' -o             -name '*.p12' -o             -name '*.pfx' -o             -name '*.db' -o             -name '*.sqlite' -o             -name '*.sqlite3'           \) -not -path './.git/*' | grep -q .; then
+          if find . -type f \( -name '.env' -o -name '*.pem' -o -name '*.key' -o -name '*.p12' -o -name '*.pfx' -o -name '*.db' -o -name '*.sqlite' -o -name '*.sqlite3' \) -not -path './.git/*' | grep -q .; then
             echo "Sensitive file type found in repository."
             exit 1
           fi
@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE             'OpenAI|ChatGPT|Codex|Claude|Gemini|Copilot|Santa Casa|IPERGS|santacasa\.local|10\.0\.0\.4'             .             --exclude-dir=.git             --exclude=package-lock.json; then
+          if grep -RniE 'OpenAI|ChatGPT|Codex|Claude|Gemini|Copilot|Santa Casa|IPERGS|santacasa\.local|10\.0\.0\.4' . --exclude-dir=.git --exclude=package-lock.json --exclude=ci.yml; then
             echo "Forbidden public-repository reference found."
             exit 1
           fi
@@ -49,7 +49,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          if grep -RniE             'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}'             .             --exclude-dir=.git; then
+          if grep -RniE 'BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY|gh[pousr]_[A-Za-z0-9_]{20,}|sk-[A-Za-z0-9_-]{20,}|AKIA[0-9A-Z]{16}' . --exclude-dir=.git; then
             echo "Potential secret detected."
             exit 1
           fi
